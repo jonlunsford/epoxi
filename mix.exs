@@ -22,6 +22,7 @@ defmodule Epoxi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:gen_stage, "~> 0.12"},
       {:mailman, github: "mailman-elixir/mailman"},
       {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false}
     ]
