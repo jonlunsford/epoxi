@@ -1,14 +1,14 @@
 defmodule Epoxi.SMTP.Mailer do
   @moduledoc "Responsible for sending emails to particular hosts"
 
-  alias Epoxi.SMTP.{Router, Context, Parsing}
+  alias Epoxi.SMTP.{Context, Parsing}
 
-  def deliver(%Mailman.Email{to: [to | _]} = email) do
+  @doc "Delivers email using the passed in context_module"
+  @spec deliver(email :: %Mailman.Email{}, context_module :: Module.t()) :: {:ok, deliverd_email :: String.t()} | {:error, reason :: Atom.t(), details :: Tuple.t()}
+  def deliver(%Mailman.Email{to: [to | _]} = email, context_module \\ Context) do
     hostname = Parsing.get_hostname(to)
-    mx_records = Router.get_mx_hosts(hostname)
-    {_distance, mx_host} = List.first(mx_records)
-    context = Context.set(mx_host)
+    context = context_module.set(hostname)
 
-    Mailman.deliver(email, context)
+    Mailman.deliver(%{email | to: [to]}, context)
   end
 end
