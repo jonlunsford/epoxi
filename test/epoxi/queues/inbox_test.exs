@@ -1,0 +1,40 @@
+defmodule Epoxi.Queues.InboxTest do
+  use ExUnit.Case
+
+  alias Epoxi.Queues.Inbox
+
+  setup do
+    inbox = start_supervised!({Inbox, :queue.new})
+
+    %{inbox: inbox}
+  end
+
+  describe "enqueue" do
+    test "it enqueues events", %{inbox: inbox} do
+      assert {:ok, "enqueued"} = Inbox.enqueue(inbox, %{message: "deliver", payload: %{email: "..."}})
+    end
+  end
+
+  describe "dequeue" do
+    test "it returns an item from the queue", %{inbox: inbox} do
+      payload = %{message: "out", payload: %{}}
+      Inbox.enqueue(inbox, payload)
+
+      assert Inbox.dequeue(inbox) == payload
+    end
+
+    test "it returns items FIFO", %{inbox: inbox} do
+      payload_1 = %{message: "first", payload: %{}}
+      payload_2 = %{message: "second", payload: %{}}
+
+      Inbox.enqueue(inbox, payload_1)
+      Inbox.enqueue(inbox, payload_2)
+
+      assert Inbox.dequeue(inbox) == payload_1
+    end
+
+    test "it replies with an empty message", %{inbox: inbox} do
+      assert {:ok, "empty"} = Inbox.dequeue(inbox)
+    end
+  end
+end
