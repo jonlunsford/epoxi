@@ -1,4 +1,5 @@
 defmodule Epoxi.Consumers.Supervisor do
+  @moduledoc "Acts as a pool for mail producers, starts one Consumer.Mail process per event received"
   use ConsumerSupervisor
 
   alias Epoxi.Producers
@@ -13,6 +14,6 @@ defmodule Epoxi.Consumers.Supervisor do
       worker(Consumers.Mail, [], restart: :transient)
     ]
 
-    {:ok, children, strategy: :one_for_one, subscribe_to: [{Producers.Mail, max_demand: 50}]}
+    {:ok, children, strategy: :one_for_one, subscribe_to: [Producers.Mail]}
   end
 end

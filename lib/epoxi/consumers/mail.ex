@@ -26,17 +26,16 @@ defmodule Epoxi.Consumers.Mail do
     {:ok, state}
   end
 
-  def handle_info(:begin_send, state) do
-    case Mailer.deliver(state.email) do
-      {:ok, message} ->
-        state = %{state | status: "sent"}
-      {:error, type, message} ->
-        state = %{state | status: "FAILED: #{type} : #{message}"}
-      {:error, reason} ->
-        state = %{state | status: "FAILED: #{reason}"}
-    end
-
-    IO.inspect state.status
+  def handle_info(:begin_send, %{email: %Mailman.Email{}} = state) do
+    state =
+      case Mailer.deliver(state.email) do
+        {:ok, _message} ->
+          %{state | status: "sent"}
+        {:error, _type, _message} ->
+          %{state | status: "FAILED"}
+        {:error, _reason} ->
+          %{state | status: "FAILED"}
+      end
 
     {:stop, :normal, state}
   end
