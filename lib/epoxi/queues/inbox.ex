@@ -25,6 +25,10 @@ defmodule Epoxi.Queues.Inbox do
     GenServer.call(pid, :dequeue)
   end
 
+  def queue_size(pid) do
+    GenServer.call(pid, :queue_size)
+  end
+
   ## Callbacks
 
   def init(queue) do
@@ -43,5 +47,9 @@ defmodule Epoxi.Queues.Inbox do
       {:empty, cur_queue} ->
         {:reply, {:ok, "empty"}, cur_queue}
     end
+  end
+
+  def handle_call(:queue_size, _from, queue) do
+    {:reply, :queue.len(queue), queue}
   end
 end

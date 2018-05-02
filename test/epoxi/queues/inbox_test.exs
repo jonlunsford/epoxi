@@ -37,4 +37,16 @@ defmodule Epoxi.Queues.InboxTest do
       assert {:ok, "empty"} = Inbox.dequeue(inbox)
     end
   end
+
+  describe "queue_size" do
+    test "it returns the total queue size", %{inbox: inbox} do
+      payload_1 = %{message: "first", payload: %{}}
+      payload_2 = %{message: "second", payload: %{}}
+
+      Inbox.enqueue(inbox, payload_1)
+      Inbox.enqueue(inbox, payload_2)
+
+      assert Inbox.queue_size(inbox) == 2
+    end
+  end
 end
