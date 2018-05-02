@@ -3,8 +3,6 @@ defmodule Epoxi.Producers.Mail do
 
   use GenStage
 
-  alias Epoxi.Consumers
-
   def start_link(_args) do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
   end
