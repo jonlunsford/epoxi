@@ -1,5 +1,11 @@
 defmodule Epoxi.MailSender do
-  @moduledoc "Acts as a consumer for MailDispatcher"
+  @moduledoc """
+  Acts as a consumer for MailDispatcher
+
+  TODO:
+  - Handle Mailer.deliver responses (200s, 400s, and 500s)
+  - Log delivery results
+  """
 
   use GenServer
 

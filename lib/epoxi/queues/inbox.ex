@@ -6,7 +6,7 @@ defmodule Epoxi.Queues.Inbox do
   supplying a queue recovered from disk.
 
   Expected payload:
-    `%{message: "something", payload: any}`
+    `"some JSON string"`
   """
 
   use GenServer

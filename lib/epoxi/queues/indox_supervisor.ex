@@ -1,4 +1,13 @@
 defmodule Epoxi.Queues.InboxSupervisor do
+  @modoledoc """
+  Supervisor for Inbox queues, to be used as a pool for delegating work and
+  referencing currently running queues.
+
+  TODO:
+  - Allow args to dictate how many queues to boot with
+  - Find available queues, indicated by them _not_ having a poller
+  - Auto scale queues up and down based on queue max / min threshold (TBD)
+  """
   use Supervisor
 
   alias Epoxi.Queues.Inbox
@@ -21,9 +30,6 @@ defmodule Epoxi.Queues.InboxSupervisor do
     Supervisor.which_children(__MODULE__)
   end
 
-  @doc """
-  TODO: Make this look for available children
-  """
   def available_for_poll() do
     {Epoxi.Queues.Inbox, pid, :worker, [Epoxi.Queues.Inbox]} = List.first(which_children())
     pid

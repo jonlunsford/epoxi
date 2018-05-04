@@ -2,6 +2,10 @@ defmodule Epoxi.MailEncoder do
   @moduledoc """
   Takes in a list of JSON strings and encodes them as [%MailMan.Email{}] and
   broadcasts the results to it's consumers
+
+  TODO:
+  - Change to a producer_consumer
+  - Implement JSON -> Map -> %MailMan.Email{} transformation using Poison.encode!
   """
 
   use GenStage
