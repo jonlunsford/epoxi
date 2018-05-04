@@ -1,31 +1,45 @@
 defmodule Epoxi.Queues.InboxSupervisor do
-  use DynamicSupervisor
+  use Supervisor
 
-  def start_link(_arg) do
-    DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  alias Epoxi.Queues.Inbox
+
+  def start_link(args) do
+    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   # Public API
 
   def start_child(pid \\ __MODULE__, {module, args}) do
-    DynamicSupervisor.start_child(pid, {module, args})
+    Supervisor.start_child(pid, {module, args})
   end
 
   def count_children() do
-    DynamicSupervisor.count_children(__MODULE__)
+    Supervisor.count_children(__MODULE__)
   end
 
   def which_children() do
-    DynamicSupervisor.which_children(__MODULE__)
+    Supervisor.which_children(__MODULE__)
+  end
+
+  @doc """
+  TODO: Make this look for available children
+  """
+  def available_for_poll() do
+    {Epoxi.Queues.Inbox, pid, :worker, [Epoxi.Queues.Inbox]} = List.first(which_children())
+    pid
   end
 
   def terminate_child(pid) do
-    DynamicSupervisor.terminate_child(__MODULE__, pid)
+    Supervisor.terminate_child(__MODULE__, pid)
   end
 
   # Callbacks
 
-  def init(:ok) do
-    DynamicSupervisor.init(strategy: :one_for_one)
+  def init(_args) do
+    children = [
+      {Inbox, :queue.new}
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

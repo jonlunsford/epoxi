@@ -20,7 +20,7 @@ defmodule Epoxi.Queues.InboxTest do
       payload = %{message: "out", payload: %{}}
       Inbox.enqueue(inbox, payload)
 
-      assert Inbox.dequeue(inbox) == payload
+      assert Inbox.dequeue(inbox) == [payload]
     end
 
     test "it returns items FIFO", %{inbox: inbox} do
@@ -30,11 +30,11 @@ defmodule Epoxi.Queues.InboxTest do
       Inbox.enqueue(inbox, payload_1)
       Inbox.enqueue(inbox, payload_2)
 
-      assert Inbox.dequeue(inbox) == payload_1
+      assert Inbox.dequeue(inbox) == [payload_1]
     end
 
     test "it replies with an empty message", %{inbox: inbox} do
-      assert {:ok, "empty"} = Inbox.dequeue(inbox)
+      assert {:ok, :empty} = Inbox.dequeue(inbox)
     end
   end
 

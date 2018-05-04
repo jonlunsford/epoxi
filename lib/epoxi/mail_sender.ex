@@ -1,5 +1,5 @@
-defmodule Epoxi.Consumers.Mail do
-  @moduledoc "Acts as a consumer for Producers.Mail"
+defmodule Epoxi.MailSender do
+  @moduledoc "Acts as a consumer for MailDispatcher"
 
   use GenServer
 

@@ -1,7 +1,9 @@
-defmodule Epoxi.Producers.Mail do
+defmodule Epoxi.MailDispatcher do
   @moduledoc "GenStage to emit emails for consumers"
 
   use GenStage
+
+  alias Epoxi.MailEncoder
 
   def start_link(_args) do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -15,7 +17,10 @@ defmodule Epoxi.Producers.Mail do
   ## Callbacks
 
   def init(:ok) do
-    {:producer, {:queue.new, 0}, dispatcher: GenStage.BroadcastDispatcher}
+    {
+      :producer_consumer,
+      {:queue.new, 0},
+      subscribe_to: [{MailEncoder, max_demand: 5}], dispatcher: GenStage.BroadcastDispatcher}
   end
 
   def handle_call({:notify, event}, from, {queue, pending_demand}) do

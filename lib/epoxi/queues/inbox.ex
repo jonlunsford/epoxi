@@ -43,9 +43,9 @@ defmodule Epoxi.Queues.Inbox do
   def handle_call(:dequeue, _from, queue) do
     case :queue.out(queue) do
       {{:value, item}, new_queue} ->
-        {:reply, item, new_queue}
+        {:reply, [item], new_queue}
       {:empty, cur_queue} ->
-        {:reply, {:ok, "empty"}, cur_queue}
+        {:reply, {:ok, :empty}, cur_queue}
     end
   end
 
