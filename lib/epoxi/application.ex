@@ -7,9 +7,9 @@ defmodule Epoxi.Application do
     children = [
       Epoxi.Queues.InboxSupervisor,
       {Epoxi.Queues.Poller, %{adapter_module: Epoxi.Queues.InternalAdapter}},
-      Epoxi.MailEncoder,
-      #Epoxi.Producers.MailSender,
-      #Epoxi.Consumers.Supervisor
+      Epoxi.Mail.Encoder,
+      Epoxi.Mail.Dispatcher,
+      Epoxi.Mail.SenderSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

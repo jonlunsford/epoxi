@@ -1,4 +1,4 @@
-defmodule Epoxi.MailSenderTest do
+defmodule Epoxi.Mail.SenderTest do
   use ExUnit.Case
 
   alias Epoxi.Test.Helpers
@@ -7,7 +7,7 @@ defmodule Epoxi.MailSenderTest do
     Mailman.TestServer.start
 
     test_email = Helpers.email_to(["test@localhost.com"])
-    consumer = start_supervised!({Epoxi.MailSender, test_email})
+    consumer = start_supervised!({Epoxi.Mail.Sender, test_email})
 
     %{consumer: consumer}
   end

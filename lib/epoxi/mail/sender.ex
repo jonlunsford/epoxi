@@ -1,4 +1,4 @@
-defmodule Epoxi.MailSender do
+defmodule Epoxi.Mail.Sender do
   @moduledoc """
   Acts as a consumer for MailDispatcher
 
@@ -43,6 +43,10 @@ defmodule Epoxi.MailSender do
           %{state | status: "FAILED"}
       end
 
+    {:stop, :normal, state}
+  end
+
+  def handle_info(:begin_send, state) do
     {:stop, :normal, state}
   end
 
