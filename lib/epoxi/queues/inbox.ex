@@ -25,6 +25,10 @@ defmodule Epoxi.Queues.Inbox do
     GenServer.call(pid, :dequeue)
   end
 
+  def drain(pid) do
+    GenServer.call(pid, :drain)
+  end
+
   def queue_size(pid) do
     GenServer.call(pid, :queue_size)
   end
@@ -38,6 +42,11 @@ defmodule Epoxi.Queues.Inbox do
   def handle_call({:enqueue, payload}, _from, queue) do
     queue = :queue.in(payload, queue)
     {:reply, {:ok, "enqueued"}, queue}
+  end
+
+  def handle_call(:drain, _from, queue) do
+    {new_queue, rest} = :queue.split(:queue.len(queue), queue)
+    {:reply, :queue.to_list(new_queue), rest}
   end
 
   def handle_call(:dequeue, _from, queue) do
