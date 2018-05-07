@@ -20,7 +20,7 @@ defmodule Epoxi.Queues.InboxTest do
       payload = %{message: "out", payload: %{}}
       Inbox.enqueue(inbox, payload)
 
-      assert Inbox.dequeue(inbox) == payload
+      assert Inbox.dequeue(inbox) == [payload]
     end
 
     test "it returns items FIFO", %{inbox: inbox} do
@@ -30,11 +30,43 @@ defmodule Epoxi.Queues.InboxTest do
       Inbox.enqueue(inbox, payload_1)
       Inbox.enqueue(inbox, payload_2)
 
-      assert Inbox.dequeue(inbox) == payload_1
+      assert Inbox.dequeue(inbox) == [payload_1]
     end
 
     test "it replies with an empty message", %{inbox: inbox} do
-      assert {:ok, "empty"} = Inbox.dequeue(inbox)
+      assert {:ok, :empty} = Inbox.dequeue(inbox)
+    end
+  end
+
+  describe "drain" do
+    test "it empties the whole queue in one call", %{inbox: inbox} do
+      payload_1 = %{message: "first", payload: %{}}
+      payload_2 = %{message: "second", payload: %{}}
+
+      Inbox.enqueue(inbox, payload_1)
+      Inbox.enqueue(inbox, payload_2)
+
+      assert Inbox.drain(inbox) == [payload_1, payload_2]
+    end
+
+    test "it returns a single item", %{inbox: inbox} do
+      payload_1 = %{message: "second", payload: %{}}
+
+      Inbox.enqueue(inbox, payload_1)
+
+      assert Inbox.drain(inbox) == [payload_1]
+    end
+  end
+
+  describe "queue_size" do
+    test "it returns the total queue size", %{inbox: inbox} do
+      payload_1 = %{message: "first", payload: %{}}
+      payload_2 = %{message: "second", payload: %{}}
+
+      Inbox.enqueue(inbox, payload_1)
+      Inbox.enqueue(inbox, payload_2)
+
+      assert Inbox.queue_size(inbox) == 2
     end
   end
 end

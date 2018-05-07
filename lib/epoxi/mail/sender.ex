@@ -1,5 +1,11 @@
-defmodule Epoxi.Consumers.Mail do
-  @moduledoc "Acts as a consumer for Producers.Mail"
+defmodule Epoxi.Mail.Sender do
+  @moduledoc """
+  Acts as a consumer for MailDispatcher
+
+  TODO:
+  - Handle Mailer.deliver responses (200s, 400s, and 500s)
+  - Log delivery results
+  """
 
   use GenServer
 
@@ -37,6 +43,10 @@ defmodule Epoxi.Consumers.Mail do
           %{state | status: "FAILED"}
       end
 
+    {:stop, :normal, state}
+  end
+
+  def handle_info(:begin_send, state) do
     {:stop, :normal, state}
   end
 
