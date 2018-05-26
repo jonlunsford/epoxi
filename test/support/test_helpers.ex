@@ -20,4 +20,20 @@ defmodule Epoxi.Test.Helpers do
             """
     }
   end
+
+  def test_json_string() do
+    """
+    {
+      "from": "jon@convertkit.com",
+      "to": ["jonlunsford33@gmail.com"],
+      "subject": "Test Subject",
+      "text": "Hello Text! <%= name %>",
+      "html": "Hello HTML! <%= name %>",
+      "data": {
+        "name": "Test Name"
+      }
+    }
+    """
+    |> String.trim()
+  end
 end
