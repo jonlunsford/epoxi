@@ -1,11 +1,7 @@
-defmodule Epoxi.Mail.Encoder do
+defmodule Epoxi.Mail.Decoder do
   @moduledoc """
-  Takes in a list of JSON strings and encodes them as [%MailMan.Email{}] and
+  Takes in a list of JSON strings and decodes them as [%MailMan.Email{}] and
   broadcasts the results to it's consumers
-
-  TODO:
-  - Change to a producer_consumer
-  - Implement JSON -> Map -> %MailMan.Email{} transformation using Poison.encode!
   """
 
   use GenStage
@@ -35,6 +31,7 @@ defmodule Epoxi.Mail.Encoder do
     case Poison.decode(event) do
       {:ok, result} ->
         map = Utils.atomize_keys(result)
+        map = update_in(map[:data], fn(m) -> Map.to_list(m) end)
         Map.merge(%Mailman.Email{}, map)
       {:error, reason} ->
         # TODO: Handle parsing errors
