@@ -22,9 +22,10 @@ defmodule Epoxi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
       {:gen_stage, "~> 0.12"},
       {:mailman, github: "mailman-elixir/mailman"},
-      {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false}
+      {:poison, "~> 3.1"}
     ]
   end
 end
