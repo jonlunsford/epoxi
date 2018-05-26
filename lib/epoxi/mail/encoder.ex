@@ -11,6 +11,7 @@ defmodule Epoxi.Mail.Encoder do
   use GenStage
 
   alias Epoxi.Queues.Poller
+  alias Epoxi.SMTP.Utils
 
   def start_link(_args) do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -23,6 +24,22 @@ defmodule Epoxi.Mail.Encoder do
   end
 
   def handle_events(events, _from, state) do
-    {:noreply, events, state}
+    decoded_events =
+      events
+      |> Enum.map(&decode/1)
+
+    {:noreply, decoded_events, state}
+  end
+
+  defp decode(event) do
+    case Poison.decode(event) do
+      {:ok, result} ->
+        map = Utils.atomize_keys(result)
+        Map.merge(%Mailman.Email{}, map)
+      {:error, reason} ->
+        # TODO: Handle parsing errors
+        IO.puts "ERROR PARSING-----------"
+        IO.inspect reason
+    end
   end
 end
