@@ -3,7 +3,7 @@ defmodule Epoxi.Mail.Dispatcher do
 
   use GenStage
 
-  alias Epoxi.Mail.Encoder
+  alias Epoxi.Mail.Decoder
 
   def start_link(_args) do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -15,7 +15,7 @@ defmodule Epoxi.Mail.Dispatcher do
     {
       :producer_consumer,
       :no_state_for_now,
-      subscribe_to: [{Encoder, max_demand: 5}], dispatcher: GenStage.BroadcastDispatcher}
+      subscribe_to: [{Decoder, max_demand: 5}], dispatcher: GenStage.BroadcastDispatcher}
   end
 
   def handle_events(events, _from, state) do

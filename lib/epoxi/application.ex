@@ -7,7 +7,7 @@ defmodule Epoxi.Application do
     children = [
       Epoxi.Queues.InboxSupervisor,
       {Epoxi.Queues.Poller, %{adapter_module: Epoxi.Queues.InternalAdapter}},
-      Epoxi.Mail.Encoder,
+      Epoxi.Mail.Decoder,
       Epoxi.Mail.Dispatcher,
       Epoxi.Mail.SenderSupervisor
     ]
