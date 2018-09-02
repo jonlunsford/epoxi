@@ -1,6 +1,6 @@
-defmodule Epoxi.Queues.InboxSupervisor do
-  @modoledoc """
-  Supervisor for Inbox queues, to be used as a pool for delegating work and
+defmodule Epoxi.Queues.Supervisor do
+  @moduledoc """
+  Supervisor for queues, to be used as a pool for delegating work and
   referencing currently running queues.
 
   TODO:
@@ -9,8 +9,6 @@ defmodule Epoxi.Queues.InboxSupervisor do
   - Auto scale queues up and down based on queue max / min threshold (TBD)
   """
   use Supervisor
-
-  alias Epoxi.Queues.Inbox
 
   def start_link(args) do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)
@@ -31,7 +29,12 @@ defmodule Epoxi.Queues.InboxSupervisor do
   end
 
   def available_for_poll() do
-    {Epoxi.Queues.Inbox, pid, :worker, [Epoxi.Queues.Inbox]} = List.first(which_children())
+    {Epoxi.Queues.Inbox, pid, :worker, [Epoxi.Queues.Inbox]} = List.last(which_children())
+    pid
+  end
+
+  def failed_queue() do
+    {Epoxi.Queues.Retries, pid, :worker, [Epoxi.Queues.Retries]} = List.first(which_children())
     pid
   end
 
@@ -43,7 +46,8 @@ defmodule Epoxi.Queues.InboxSupervisor do
 
   def init(_args) do
     children = [
-      {Inbox, :queue.new}
+      {Epoxi.Queues.Inbox, :queue.new},
+      {Epoxi.Queues.Retries, :queue.new}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

@@ -5,7 +5,7 @@ defmodule Epoxi.Application do
 
   def start(_type, _args) do
     children = [
-      Epoxi.Queues.InboxSupervisor,
+      Epoxi.Queues.Supervisor,
       {Epoxi.Queues.Poller, %{adapter_module: Epoxi.Queues.InternalAdapter}},
       Epoxi.Mail.Decoder,
       Epoxi.Mail.Dispatcher,
