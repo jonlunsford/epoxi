@@ -1,4 +1,5 @@
 defmodule Epoxi.Mail.Decoder do
+  require Logger
   @moduledoc """
   Takes in a list of JSON strings and decodes them as [%MailMan.Email{}] and
   broadcasts the results to it's consumers
@@ -16,10 +17,11 @@ defmodule Epoxi.Mail.Decoder do
   ## Callbacks
 
   def init(:ok) do
-    {:producer_consumer, :no_state_for_now, subscribe_to: [Poller]}
+    {:producer_consumer, :no_state_for_now, subscribe_to: [{Poller, max_demand: 10, min_demand: 8}]}
   end
 
   def handle_events(events, _from, state) do
+    Logger.debug("Decoding #{Enum.count(events)} events", ansi_color: :blue)
     decoded_events =
       events
       |> Enum.map(&decode/1)
