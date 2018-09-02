@@ -1,4 +1,5 @@
 defmodule Epoxi.Mail.Sender do
+  require Logger
   @moduledoc """
   Acts as a consumer for MailDispatcher
 
@@ -10,10 +11,12 @@ defmodule Epoxi.Mail.Sender do
   use GenServer
 
   alias Epoxi.SMTP.Mailer
+  alias Epoxi.Queues
 
   @default_state %{
     status: "idle",
-    email: nil
+    email: nil,
+    error: nil
   }
 
   def start_link(email) do
@@ -37,11 +40,15 @@ defmodule Epoxi.Mail.Sender do
       case Mailer.deliver(state.email) do
         {:ok, _message} ->
           %{state | status: "sent"}
-        {:error, _type, _message} ->
-          %{state | status: "FAILED"}
-        {:error, _reason} ->
-          %{state | status: "FAILED"}
+        {:error, type, message} ->
+          %{state | status: "failed", error: %{type: type, message: message}}
+        {:error, reason} ->
+          %{state | status: "failed", error: %{reason: reason}}
       end
+
+    log("Attempted Send: #{inspect(state)}")
+
+    state = retry_if_failed(state)
 
     {:stop, :normal, state}
   end
@@ -56,5 +63,20 @@ defmodule Epoxi.Mail.Sender do
 
   defp schedule_send() do
     Process.send(self(), :begin_send, [])
+  end
+
+  defp retry_if_failed(%{error: error} = state) when is_map(error) do
+    log("Adding to retries queue: #{inspect(state)}", :magenta)
+    failed_queue = Queues.Supervisor.failed_queue()
+    Queues.Retries.enqueue(failed_queue, state)
+    state
+  end
+
+  defp retry_if_failed(state) do
+    state
+  end
+
+  defp log(message, color \\ :green) do
+    Logger.debug(message, ansi_color: color)
   end
 end
