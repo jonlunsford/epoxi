@@ -16,8 +16,6 @@ defmodule Epoxi.Queues.Poller do
 
   use GenStage
 
-  alias Epoxi.Queues.InboxSupervisor
-
   def start_link(args) do
     GenStage.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -33,7 +31,7 @@ defmodule Epoxi.Queues.Poller do
   def init(args) do
     {
       :producer,
-      %{queue_ref: InboxSupervisor.available_for_poll(),
+      %{queue_ref: Epoxi.Queues.Supervisor.available_for_poll(),
         events: :queue.new,
         pending_demand: 0,
         adapter_module: args[:adapter_module]}
