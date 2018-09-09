@@ -29,7 +29,9 @@ defmodule Epoxi.Mail.Decoder do
     {:noreply, decoded_events, state}
   end
 
-  defp decode(event) do
+  defp decode(%{email: email}), do: email
+
+  defp decode(event) when is_binary(event) do
     case Poison.decode(event) do
       {:ok, result} ->
         map = Utils.atomize_keys(result)
