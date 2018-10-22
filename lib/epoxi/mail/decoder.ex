@@ -17,7 +17,9 @@ defmodule Epoxi.Mail.Decoder do
   ## Callbacks
 
   def init(:ok) do
-    {:producer_consumer, :no_state_for_now, subscribe_to: [{Poller, max_demand: 10, min_demand: 8}]}
+    {:producer_consumer,
+      :no_state_for_now,
+      subscribe_to: [{Poller, max_demand: 1000, min_demand: 750}]}
   end
 
   def handle_events(events, _from, state) do
@@ -36,9 +38,8 @@ defmodule Epoxi.Mail.Decoder do
       {:ok, result} ->
         map = Utils.atomize_keys(result)
         map = update_in(map[:data], fn(m) -> Map.to_list(m) end)
-        Map.merge(%Mailman.Email{}, map)
+        struct(Mailman.Email, map)
       {:error, reason} ->
-        # TODO: Handle parsing errors
         IO.puts "ERROR PARSING-----------"
         IO.inspect reason
     end
