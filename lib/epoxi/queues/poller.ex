@@ -1,4 +1,5 @@
 defmodule Epoxi.Queues.Poller do
+  require Logger
   @moduledoc """
   Acts as a poller for queues, when events are found they are dispatched
   immediately to any subscribed consumers.
@@ -23,7 +24,7 @@ defmodule Epoxi.Queues.Poller do
   ## Public API
 
   def poll() do
-    GenStage.cast(self(), :poll)
+    #Process.send(self(), :poll, [])
   end
 
   ## Callbacks
@@ -31,14 +32,14 @@ defmodule Epoxi.Queues.Poller do
   def init(args) do
     {
       :producer,
-      %{queue_ref: Epoxi.Queues.Supervisor.available_for_poll(),
+      %{queue_ref: Epoxi.Queues.Supervisor.available_inbox(),
         events: :queue.new,
         pending_demand: 0,
         adapter_module: args[:adapter_module]}
     }
   end
 
-  def handle_cast(:poll, %{queue_ref: queue_ref} = state) do
+  def handle_info(:poll, %{queue_ref: queue_ref} = state) do
     found_events = state.adapter_module.fetch_events(queue_ref)
     events =
       found_events
@@ -72,8 +73,16 @@ defmodule Epoxi.Queues.Poller do
   end
 
   defp do_dispatch_events(state, to_dispatch) do
-    if state.pending_demand > 0, do: poll()
+    if state.pending_demand > 0, do: do_poll()
     to_dispatch = Enum.reverse(to_dispatch)
     {:noreply, to_dispatch, state}
+  end
+
+  defp do_poll() do
+    Process.send_after(self(), :poll, 100)
+  end
+
+  defp log(message, color \\ :magenta) do
+    Logger.debug(message, ansi_color: color)
   end
 end
