@@ -45,10 +45,9 @@ defmodule Epoxi.Mail.Sender do
         {:error, reason} ->
           %{state | status: "failed", error: %{reason: reason}}
       end
+      |> retry_if_failed()
 
     log("Attempted Send: #{inspect(state)}")
-
-    state = retry_if_failed(state)
 
     {:stop, :normal, state}
   end
@@ -66,9 +65,8 @@ defmodule Epoxi.Mail.Sender do
   end
 
   defp retry_if_failed(%{error: error} = state) when is_map(error) do
-    log("Adding to retries queue: #{inspect(state)}", :magenta)
-    failed_queue = Queues.Supervisor.failed_queue()
-    Queues.Retries.enqueue(failed_queue, state)
+    retries_queue = Queues.Supervisor.available_retries()
+    Queues.Retries.enqueue(retries_queue, state)
     state
   end
 
@@ -76,7 +74,7 @@ defmodule Epoxi.Mail.Sender do
     state
   end
 
-  defp log(message, color \\ :green) do
+  defp log(message, color \\ :cyan) do
     Logger.debug(message, ansi_color: color)
   end
 end
