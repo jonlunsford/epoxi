@@ -1,4 +1,5 @@
 defmodule Epoxi.Queues.Retries do
+  require Logger
   @moduledoc """
   Acts as a queue to hold failures
 
@@ -25,6 +26,10 @@ defmodule Epoxi.Queues.Retries do
     GenServer.call(pid, :queue_size)
   end
 
+  def retry(pid) do
+    GenServer.call(pid, :retry)
+  end
+
   ## Callbacks
 
   def init(queue) do
@@ -32,6 +37,7 @@ defmodule Epoxi.Queues.Retries do
   end
 
   def handle_call({:enqueue, payload}, _from, queue) do
+    log("Enqueueing retry: #{inspect(payload)}")
     queue = :queue.in(payload, queue)
     {:reply, {:ok, "enqueued"}, queue}
   end
@@ -45,7 +51,24 @@ defmodule Epoxi.Queues.Retries do
     end
   end
 
+  def handle_call(:retry, _from, queue) do
+    inbox = Epoxi.Queues.Supervisor.available_inbox()
+
+    case :queue.out(queue) do
+      {{:value, item}, new_queue} ->
+        log("Sending Retry: #{inspect(item)}")
+        Epoxi.Queues.Inbox.enqueue(inbox, item)
+        {:reply, [item], new_queue}
+      {:empty, cur_queue} ->
+        {:reply, {:ok, :empty}, cur_queue}
+    end
+  end
+
   def handle_call(:queue_size, _from, queue) do
     {:reply, :queue.len(queue), queue}
+  end
+
+  defp log(message, color \\ :magenta) do
+    Logger.debug(message, ansi_color: color)
   end
 end
