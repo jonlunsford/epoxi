@@ -28,12 +28,13 @@ defmodule Epoxi.Queues.Supervisor do
     Supervisor.which_children(__MODULE__)
   end
 
-  def available_for_poll() do
+  def available_inbox() do
+    # TODO: Select from dynamic queues rather that hard coded
     {Epoxi.Queues.Inbox, pid, :worker, [Epoxi.Queues.Inbox]} = List.last(which_children())
     pid
   end
 
-  def failed_queue() do
+  def available_retries() do
     {Epoxi.Queues.Retries, pid, :worker, [Epoxi.Queues.Retries]} = List.first(which_children())
     pid
   end
