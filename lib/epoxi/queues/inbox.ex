@@ -45,8 +45,8 @@ defmodule Epoxi.Queues.Inbox do
   end
 
   def handle_call(:drain, _from, queue) do
-    {new_queue, rest} = :queue.split(:queue.len(queue), queue)
-    {:reply, :queue.to_list(new_queue), rest}
+    {new_queue, remaining_queue} = :queue.split(:queue.len(queue), queue)
+    {:reply, :queue.to_list(new_queue), remaining_queue}
   end
 
   def handle_call(:dequeue, _from, queue) do
