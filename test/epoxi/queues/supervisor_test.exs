@@ -15,13 +15,13 @@ defmodule Epoxi.Queues.SupervisorTest do
     end
   end
 
-  describe "available_for_poll" do
+  describe "available_inbox" do
     # TODO: refactor to actually look for something useful
     test "it returns the single Inbox queue" do
       Epoxi.Queues.Supervisor.start_child({Epoxi.Queues.Inbox, :queue.new})
       Epoxi.Queues.Supervisor.start_child({Epoxi.Queues.Retries, :queue.new})
 
-      assert is_pid(Epoxi.Queues.Supervisor.available_for_poll())
+      assert is_pid(Epoxi.Queues.Supervisor.available_inbox())
     end
   end
 end
