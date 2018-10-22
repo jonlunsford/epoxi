@@ -16,7 +16,7 @@ defmodule Epoxi.Mail.Dispatcher do
     {
       :producer_consumer,
       :no_state_for_now,
-      subscribe_to: [{Decoder, max_demand: 5, min_demand: 4}], dispatcher: GenStage.BroadcastDispatcher}
+      subscribe_to: [{Decoder, max_demand: 1000, min_demand: 750}]}
   end
 
   def handle_events(events, _from, state) do
