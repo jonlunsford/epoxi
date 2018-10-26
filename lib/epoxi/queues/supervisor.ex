@@ -47,7 +47,7 @@ defmodule Epoxi.Queues.Supervisor do
 
   def init(_args) do
     children = [
-      {Epoxi.Queues.Inbox, :queue.new},
+      {Epoxi.Queues.Inbox, []},
       {Epoxi.Queues.Retries, :queue.new}
     ]
 
