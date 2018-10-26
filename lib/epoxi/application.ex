@@ -6,10 +6,9 @@ defmodule Epoxi.Application do
   def start(_type, _args) do
     children = [
       Epoxi.Queues.Supervisor,
-      {Epoxi.Queues.Poller, %{adapter_module: Epoxi.Queues.InternalAdapter}},
       Epoxi.Mail.Decoder,
-      Epoxi.Mail.Dispatcher,
-      Epoxi.Mail.SenderSupervisor
+      Epoxi.Mail.SenderSupervisor,
+      Epoxi.Endpoint.HTTP
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

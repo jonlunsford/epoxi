@@ -14,7 +14,7 @@ defmodule Epoxi.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :plug_cowboy],
       mod: {Epoxi.Application, []}
     ]
   end
@@ -25,7 +25,9 @@ defmodule Epoxi.MixProject do
       {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
       {:gen_stage, "~> 0.12"},
       {:mailman, github: "mailman-elixir/mailman"},
-      {:poison, "~> 3.1"}
+      {:poison, "~> 3.1"},
+      {:cowboy, "~> 2.5"},
+      {:plug_cowboy, "~> 2.0"}
     ]
   end
 end
