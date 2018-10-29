@@ -5,7 +5,7 @@ defmodule Epoxi.Queues.RetriesTest do
   alias Epoxi.Test.Helpers
 
   setup do
-    retries = start_supervised!({Retries, []})
+    retries = start_supervised!({Retries, :queue.new})
 
     %{retries: retries}
   end
@@ -21,7 +21,7 @@ defmodule Epoxi.Queues.RetriesTest do
       payload = %{message: "out", payload: %{}}
       Retries.enqueue(retries, payload)
 
-      {:ok, result} = Retries.dequeue(retries)
+      [result] = Retries.dequeue(retries)
 
       assert result == payload
     end
@@ -33,8 +33,8 @@ defmodule Epoxi.Queues.RetriesTest do
       Retries.enqueue(retries, payload_1)
       Retries.enqueue(retries, payload_2)
 
-      {:ok, first} = Retries.dequeue(retries)
-      {:ok, second} = Retries.dequeue(retries)
+      [first] = Retries.dequeue(retries)
+      [second] = Retries.dequeue(retries)
 
       assert first == payload_1
       assert second == payload_2
@@ -63,7 +63,7 @@ defmodule Epoxi.Queues.RetriesTest do
 
       Retries.enqueue(retries, failed_attempt)
 
-      assert :ok = Retries.retry(retries)
+      assert [failed_attempt] = Retries.retry(retries)
     end
   end
 end
