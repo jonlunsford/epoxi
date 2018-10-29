@@ -15,7 +15,7 @@ defmodule Epoxi.Queues.Retries do
   ## Public API
 
   def enqueue(pid, payload) do
-    GenServer.call(pid, {:enqueue, payload})
+    GenServer.cast(pid, {:enqueue, payload})
   end
 
   def dequeue(pid) do
@@ -27,45 +27,40 @@ defmodule Epoxi.Queues.Retries do
   end
 
   def retry(pid) do
-    GenServer.call(pid, :retry)
+    GenServer.cast(pid, :retry)
   end
 
   ## Callbacks
 
-  def init(queue) do
-    {:ok, queue}
+  def init(state) do
+    {:ok, state}
   end
 
-  def handle_call({:enqueue, payload}, _from, queue) do
+  def handle_cast({:enqueue, payload}, state) do
     log("Enqueueing retry: #{inspect(payload)}")
-    queue = :queue.in(payload, queue)
-    {:reply, {:ok, "enqueued"}, queue}
+    {:noreply, [payload | state]}
   end
 
-  def handle_call(:dequeue, _from, queue) do
-    case :queue.out(queue) do
-      {{:value, item}, new_queue} ->
-        {:reply, [item], new_queue}
-      {:empty, cur_queue} ->
-        {:reply, {:ok, :empty}, cur_queue}
-    end
-  end
-
-  def handle_call(:retry, _from, queue) do
+  def handle_cast(:retry, state) do
     inbox = Epoxi.Queues.Supervisor.available_inbox()
 
-    case :queue.out(queue) do
-      {{:value, item}, new_queue} ->
-        log("Sending Retry: #{inspect(item)}")
-        Epoxi.Queues.Inbox.enqueue(inbox, item)
-        {:reply, [item], new_queue}
-      {:empty, cur_queue} ->
-        {:reply, {:ok, :empty}, cur_queue}
+    case List.pop_at(state, -1) do
+      {:ok, nil} ->
+        {:noreply, state}
+      {:ok, result} ->
+        log("Sending Retry: #{inspect(result)}")
+        Epoxi.Queues.Inbox.enqueue(inbox, result)
+        {:noreply, state}
     end
   end
 
-  def handle_call(:queue_size, _from, queue) do
-    {:reply, :queue.len(queue), queue}
+  def handle_call(:dequeue, _from, state) do
+    {reply, new_state} = List.pop_at(state, -1)
+    {:reply, {:ok, reply || :empty}, new_state}
+  end
+
+  def handle_call(:queue_size, _from, state) do
+    {:reply, Enum.count(state), state}
   end
 
   defp log(message, color \\ :magenta) do
