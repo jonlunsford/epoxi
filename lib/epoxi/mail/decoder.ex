@@ -27,8 +27,9 @@ defmodule Epoxi.Mail.Decoder do
 
     email_structs =
       json_payload
-      |> Enum.map(&decode_json/1)
-      |> Enum.map(&cast_map_to_email_struct/1)
+      |> Task.async_stream(&decode_json/1, max_concurrency: 500)
+      |> Task.async_stream(&cast_map_to_email_struct/1, max_concurrency: 500)
+      |> Enum.map(fn {:ok, val} -> val end)
       |> List.flatten()
 
     Logger.debug("Produced #{Enum.count(email_structs)} email structs", ansi_color: :blue)
@@ -45,7 +46,7 @@ defmodule Epoxi.Mail.Decoder do
     end
   end
 
-  defp cast_map_to_email_struct(payload) when is_map(payload) do
+  defp cast_map_to_email_struct({:ok, payload}) when is_map(payload) do
     payload["to"]
     |> Enum.map(&format_map_for_email(&1, payload))
     |> Enum.map(&cast_to_struct/1)
