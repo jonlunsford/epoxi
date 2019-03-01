@@ -6,6 +6,9 @@ defmodule Epoxi.Queues.Retries do
   TODO: Make eventually persistent
   """
 
+  @max_retry_delay 1024
+  @max_retry_count 17
+
   use GenServer
 
   def start_link(queue) do
@@ -38,6 +41,7 @@ defmodule Epoxi.Queues.Retries do
 
   def handle_cast({:enqueue, payload}, queue) do
     log("Enqueueing retry: #{inspect(payload)}")
+    schedule_retry(payload)
     {:noreply, :queue.in(payload, queue)}
   end
 
@@ -50,7 +54,7 @@ defmodule Epoxi.Queues.Retries do
     end
   end
 
-  def handle_call(:retry, _from, queue) do
+  def handle_info(:retry, queue) do
     inbox = Epoxi.Queues.Supervisor.available_inbox()
 
     case :queue.out(queue) do
@@ -65,6 +69,12 @@ defmodule Epoxi.Queues.Retries do
 
   def handle_call(:queue_size, _from, queue) do
     {:reply, :queue.len(queue), queue}
+  end
+
+  defp schedule_retry(payload, initial_delay \\ 10) do
+    next_send_time = :erlang.round(initial_delay * :math.pow(2, payload.failures)) * 100
+    log("Next send attempt: #{next_send_time}")
+    Process.send_after(self(), :retry, next_send_time)
   end
 
   defp log(message, color \\ :magenta) do
