@@ -26,7 +26,6 @@ defmodule Epoxi.MixProject do
       {:gen_stage, "~> 0.12"},
       {:mailman, github: "mailman-elixir/mailman"},
       {:poison, "~> 3.1"},
-      {:cowboy, "~> 2.5"},
       {:plug_cowboy, "~> 2.0"}
     ]
   end
