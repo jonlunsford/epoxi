@@ -45,7 +45,6 @@ defmodule Epoxi.Mail.Sender do
         {:error, reason} ->
           %{state | status: "failed", error: %{reason: reason}}
       end
-      |> retry_if_failed()
 
     log("Attempted Send: #{inspect(state)}")
 
