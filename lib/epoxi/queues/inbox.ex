@@ -1,6 +1,6 @@
 defmodule Epoxi.Queues.Inbox do
   @moduledoc """
-  Acts as a buffer queue, storing inbound messages to be delivered.
+  Streams all inbound payloads immediately
 
   Can be started with an existing queue, ideally we can recover from failure by
   supplying a queue recovered from disk.
@@ -11,8 +11,8 @@ defmodule Epoxi.Queues.Inbox do
 
   use GenStage
 
-  def start_link(state) do
-    GenStage.start_link(__MODULE__, state, name: __MODULE__)
+  def start_link(queue) do
+    GenStage.start_link(__MODULE__, queue, name: __MODULE__)
   end
 
   ## Public API
@@ -27,8 +27,8 @@ defmodule Epoxi.Queues.Inbox do
 
   ## Callbacks
 
-  def init(state) do
-    {:producer, state}
+  def init(queue) do
+    {:producer, queue}
   end
 
   def handle_cast({:enqueue, payload}, state) when is_list(payload) do
