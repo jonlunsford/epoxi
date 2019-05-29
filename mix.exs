@@ -23,7 +23,7 @@ defmodule Epoxi.MixProject do
   defp deps do
     [
       {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
-      {:gen_stage, "~> 0.12"},
+      {:gen_stage, "~> 0.14"},
       {:mailman, github: "mailman-elixir/mailman"},
       {:poison, "~> 3.1"},
       {:plug_cowboy, "~> 2.0"}
