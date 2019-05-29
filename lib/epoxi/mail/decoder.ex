@@ -19,7 +19,7 @@ defmodule Epoxi.Mail.Decoder do
   def init(:ok) do
     {:producer_consumer,
       :no_state_for_now,
-      subscribe_to: [{Inbox, max_demand: 1000, min_demand: 750}]}
+      subscribe_to: [{Inbox, max_demand: 1000, min_demand: 500}]}
   end
 
   def handle_events(json_payload, _from, state) do
