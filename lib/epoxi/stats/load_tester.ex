@@ -1,22 +1,27 @@
 defmodule Epoxi.Stats.LoadTester do
   @moduledoc """
   Rudimentary load testing module
-
-  TODO:
-    - Make concurrent and configurable
   """
 
   def init(send_count, batch_size) do
     Epoxi.Stats.Server.start_link([:request, :decode, :send, :failure])
 
-    for _n <- 1..send_count do
-      HTTPotion.post("http://localhost:4000/send", [body: test_json_string(batch_size)])
-    end
+    tasks =
+      Enum.map(1..send_count, fn _ ->
+        Task.async(fn -> send_request(batch_size) end)
+      end)
+
+    tasks
+    |> Enum.each(fn task -> Task.await(task) end)
 
     Epoxi.Stats.Server.stop()
   end
 
-  def test_json_string(batch_size) do
+  defp send_request(batch_size) do
+    HTTPotion.post("http://localhost:4000/send", [body: gen_json_payload(batch_size)])
+  end
+
+  def gen_json_payload(batch_size) do
     data = build_batch_data(batch_size)
     recipients = Map.keys(data)
 
