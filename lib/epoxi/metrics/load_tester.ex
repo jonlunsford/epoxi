@@ -1,11 +1,9 @@
-defmodule Epoxi.Stats.LoadTester do
+defmodule Epoxi.Metrics.LoadTester do
   @moduledoc """
   Rudimentary load testing module
   """
 
   def init(send_count, batch_size) do
-    Epoxi.Stats.Server.start_link([:request, :decode, :send, :failure])
-
     tasks =
       Enum.map(1..send_count, fn _ ->
         Task.async(fn -> send_request(batch_size) end)
@@ -13,8 +11,6 @@ defmodule Epoxi.Stats.LoadTester do
 
     tasks
     |> Enum.each(fn task -> Task.await(task) end)
-
-    Epoxi.Stats.Server.stop()
   end
 
   defp send_request(batch_size) do

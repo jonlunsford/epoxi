@@ -3,6 +3,7 @@ defmodule Epoxi.Endpoint.HTTP do
 
   plug Plug.Logger
   plug :match
+  plug Plug.Telemetry, event_prefix: [:epoxi, :endpoint]
   plug :dispatch
 
   def child_spec(opts) do

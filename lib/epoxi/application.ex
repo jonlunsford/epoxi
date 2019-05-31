@@ -5,6 +5,7 @@ defmodule Epoxi.Application do
 
   def start(_type, _args) do
     children = [
+      Epoxi.Metrics.Statsd,
       Epoxi.Queues.Supervisor,
       Epoxi.Mail.Decoder,
       Epoxi.Mail.SenderSupervisor,

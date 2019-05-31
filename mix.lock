@@ -24,5 +24,9 @@
   "poison": {:hex, :poison, "3.1.0", "d9eb636610e096f86f25d9a46f35a9facac35609a7591b3be3326e99a0484665", [:mix], [], "hexpm"},
   "ranch": {:hex, :ranch, "1.7.1", "6b1fab51b49196860b733a49c07604465a47bdb78aa10c1c16a3d199f7f8c881", [:rebar3], [], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.4", "f0eafff810d2041e93f915ef59899c923f4568f4585904d010387ed74988e77b", [:make, :mix, :rebar3], [], "hexpm"},
+  "telemetry": {:hex, :telemetry, "0.4.0", "8339bee3fa8b91cb84d14c2935f8ecf399ccd87301ad6da6b71c09553834b2ab", [:rebar3], [], "hexpm"},
+  "telemetry_metrics": {:hex, :telemetry_metrics, "0.2.1", "00d0bfb07dadab8fd6def8a09e93a545759bec36741947a853cb0c4fed1ed8e8", [:mix], [{:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm"},
+  "telemetry_metrics_statsd": {:hex, :telemetry_metrics_statsd, "0.1.0", "f0f0b1b0cb107ae54c00ac7602716802c1d64e99874c72197b4da0f02f4b10c7", [:mix], [{:telemetry_metrics, "~> 0.2", [hex: :telemetry_metrics, repo: "hexpm", optional: false]}], "hexpm"},
+  "telemetry_poller": {:hex, :telemetry_poller, "0.3.0", "e67c0a0bcb9d457985e7b8715abe7e98b7c055532b069bcac9a112ce2367c409", [:mix], [{:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.4.1", "d869e4c68901dd9531385bb0c8c40444ebf624e60b6962d95952775cac5e90cd", [:rebar3], [], "hexpm"},
 }
