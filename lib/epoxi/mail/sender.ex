@@ -14,7 +14,7 @@ defmodule Epoxi.Mail.Sender do
   alias Epoxi.Queues
 
   @default_state %{
-    status: "idle",
+    status: "enqueued",
     email: nil,
     error: nil
   }
@@ -37,16 +37,23 @@ defmodule Epoxi.Mail.Sender do
 
   def handle_info(:begin_send, %{email: %Mailman.Email{}} = state) do
     state =
-      case Mailer.deliver(state.email) do
-        {:ok, _message} ->
-          %{state | status: "sent"}
-        {:error, type, message} ->
-          %{state | status: "failed", error: %{type: type, message: message}}
-        {:error, reason} ->
-          %{state | status: "failed", error: %{reason: reason}}
+      try do
+        case Mailer.deliver(state.email) do
+          {:ok, _message} ->
+            %{state | status: "delivered"}
+          {:error, error, message} ->
+            %{state | status: "failed", error: %{type: error, message: message}}
+          {error, message} ->
+            %{state | status: "failed", error: %{type: error, message: message}}
+        end
+      catch
+        {:temporary_failure, message} ->
+          %{state | status: "failed", error: %{type: :temporary_failure, message: message}}
+        {:permanent_failure, message} ->
+          %{state | status: "failed", error: %{type: :permanent_failure, message: message}}
       end
 
-    log("Attempted Send: #{inspect(state)}")
+    report(state)
 
     {:stop, :normal, state}
   end
@@ -71,6 +78,28 @@ defmodule Epoxi.Mail.Sender do
 
   defp retry_if_failed(state) do
     state
+  end
+
+  defp report(%{error: %{message: {type, destination, {:error, error}}}}) do
+    log("ERROR: #{inspect(error)}", :magenta)
+    :telemetry.execute([:epoxi, :mail, :sender], %{error: 1}, %{error: error, type: type, destination: destination})
+  end
+
+  defp report(%{error: %{message: message, type: type}}) do
+    log("ERROR: #{inspect(message)}", :magenta)
+
+    error =
+      case Regex.run(~r"\d+\d.+\d.+\d", message) do
+        [<< error_code :: binary >>] -> error_code
+        nil -> "error code not provided"
+      end
+
+    :telemetry.execute([:epoxi, :mail, :sender], %{error: 1}, %{error: error, type: type})
+  end
+
+  defp report(%{status: "delivered"} = state) do
+    log("SENT: #{inspect(state)}")
+    :telemetry.execute([:epoxi, :mail, :sender], %{sent: 1}, %{status: state.status})
   end
 
   defp log(message, color \\ :cyan) do

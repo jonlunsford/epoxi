@@ -11,6 +11,6 @@ defmodule Epoxi.Mail.SenderSupervisor do
       worker(Epoxi.Mail.Sender, [], restart: :temporary)
     ]
 
-    {:ok, children, strategy: :one_for_one, subscribe_to: [Epoxi.Mail.Decoder]}
+    {:ok, children, strategy: :one_for_one, subscribe_to: [{Epoxi.Mail.Decoder, max_demand: 1000, min_demand: 500}]}
   end
 end

@@ -54,6 +54,8 @@ defmodule Epoxi.Queues.Poller do
   def handle_demand(demand, state) when demand > 0 do
     state = %{state | pending_demand: state.pending_demand + demand}
 
+    :telemetry.execute([:epoxi, :queues, :poller], %{pending_demand: state.pending_demand}, %{})
+
     dispatch_events(state, [])
   end
 
@@ -82,7 +84,7 @@ defmodule Epoxi.Queues.Poller do
     Process.send_after(self(), :poll, 100)
   end
 
-  defp log(message, color \\ :magenta) do
-    Logger.debug(message, ansi_color: color)
-  end
+  #defp log(message, color \\ :magenta) do
+    #Logger.debug("#{__MODULE__}: #{message}", ansi_color: color)
+  #end
 end

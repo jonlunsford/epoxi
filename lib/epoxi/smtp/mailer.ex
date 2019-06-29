@@ -1,4 +1,5 @@
 defmodule Epoxi.SMTP.Mailer do
+  require Logger
   @moduledoc "Responsible for sending emails to particular hosts"
 
   alias Epoxi.SMTP.Parsing

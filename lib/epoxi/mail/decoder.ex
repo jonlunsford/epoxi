@@ -19,20 +19,22 @@ defmodule Epoxi.Mail.Decoder do
   def init(:ok) do
     {:producer_consumer,
       :no_state_for_now,
-      subscribe_to: [{Inbox, max_demand: 1000, min_demand: 500}]}
+      subscribe_to: [{Inbox, max_demand: 2000, min_demand: 1000}]}
   end
 
   def handle_events(json_payload, _from, state) do
-    Logger.debug("Decoding #{Enum.count(json_payload)} JSON payloads", ansi_color: :blue)
+    #Logger.debug("Decoding #{Enum.count(json_payload)} JSON payloads", ansi_color: :blue)
+    :telemetry.execute([:epoxi, :mail, :decoder], %{json_payloads: Enum.count(json_payload)}, %{})
 
     email_structs =
       json_payload
       |> Task.async_stream(&decode_json/1, max_concurrency: 500)
-      |> Task.async_stream(&cast_map_to_email_struct/1, max_concurrency: 500)
+      |> Task.async_stream(&cast_map_to_email_struct/1, max_concurrency: 1000)
       |> Enum.map(fn {:ok, val} -> val end)
       |> List.flatten()
 
-    Logger.debug("Produced #{Enum.count(email_structs)} email structs", ansi_color: :blue)
+    #Logger.debug("Produced #{Enum.count(email_structs)} email structs", ansi_color: :blue)
+    :telemetry.execute([:epoxi, :mail, :decoder], %{email_structs: Enum.count(email_structs)}, %{})
 
     {:noreply, email_structs, state}
   end
