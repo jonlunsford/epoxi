@@ -5,7 +5,7 @@ defmodule Epoxi.MixProject do
     [
       app: :epoxi,
       version: "0.1.0",
-      elixir: "~> 1.12",
+      elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -14,7 +14,7 @@ defmodule Epoxi.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:telemetry_poller, :logger, :plug_cowboy],
+      extra_applications: [:logger],
       mod: {Epoxi.Application, []}
     ]
   end
@@ -24,13 +24,14 @@ defmodule Epoxi.MixProject do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:gen_stage, "~> 1.1"},
+      {:broadway, "~> 1.0"},
       {:mailman, "~> 0.4.3"},
-      {:poison, "~> 5.0"},
+      {:poison, "~> 5.0"}
 
-      {:telemetry, "~> 1.0"},
-      {:telemetry_metrics, "~> 0.6.1"},
-      {:telemetry_poller, "~> 1.0"},
-      {:telemetry_metrics_statsd, "~> 0.6.1"}
+      #{:telemetry, "~> 1.0"},
+      #{:telemetry_metrics, "~> 0.6.1"},
+      #{:telemetry_poller, "~> 1.0"},
+      #{:telemetry_metrics_statsd, "~> 0.6.1"}
     ]
   end
 end

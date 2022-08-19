@@ -5,16 +5,16 @@ defmodule Epoxi.Application do
 
   def start(_type, _args) do
     children = [
-      Epoxi.Metrics.Statsd,
-      Epoxi.Queues.Supervisor,
-      Epoxi.Mail.Decoder,
-      Epoxi.Mail.SenderSupervisor,
-      Epoxi.Endpoint.HTTP
+      #Epoxi.Metrics.Statsd,
+      #Epoxi.Queues.Supervisor,
+      #Epoxi.Mail.Decoder,
+      #Epoxi.Mail.SenderSupervisor
+      Epoxi.Mail.DeliveryPipeline
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: Epoxi.Supervisors.Main]
+    opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
   end
 end
