@@ -1,4 +1,4 @@
-defmodule Epoxi.Mail.JSONDecoder do
+defmodule Epoxi.JSONDecoder do
   @moduledoc """
   Takes in a list of JSON strings and decodes them as [%MailMan.Email{}] and
   broadcasts the results to it's consumers
@@ -6,7 +6,7 @@ defmodule Epoxi.Mail.JSONDecoder do
 
   require Logger
 
-  alias Epoxi.SMTP.Utils
+  alias Epoxi.Utils
 
   def decode(json_string) when is_binary(json_string) do
     case Poison.decode(json_string) do
@@ -30,6 +30,6 @@ defmodule Epoxi.Mail.JSONDecoder do
   defp cast_to_struct(json_map) when is_map(json_map) do
     map = Utils.atomize_keys(json_map)
     map = update_in(map[:data], fn(m) -> Map.to_list(m) end)
-    struct(Mailman.Email, map)
+    struct(Epoxi.Email, map)
   end
 end

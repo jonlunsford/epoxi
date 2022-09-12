@@ -1,16 +1,16 @@
-defmodule Epox.Mail.JSONDecoderTest do
+defmodule Epoxi.JSONDecoderTest do
   use ExUnit.Case, async: true
 
-  alias Epoxi.Mail.JSONDecoder
+  alias Epoxi.JSONDecoder
   alias Epoxi.Test.Helpers
 
   describe "decode" do
-    test "it transforms json strings into %Mailman.Email{} structs" do
+    test "it transforms json strings into %Epoxi.Email{} structs" do
       json = Helpers.gen_json_payload(1)
 
-      _email = JSONDecoder.decode(json)
+      email = JSONDecoder.decode(json)
 
-      assert _email = %Mailman.Email{}
+      assert [%Epoxi.Email{}] = email
     end
 
     test "it parses multiple recipients" do
