@@ -34,12 +34,12 @@ defmodule Epoxi.Render do
       |> Enum.reverse()
 
     headers = [
-      {"From", email.from |> addresss_to_header_value()},
-      {"To", email.to |> addresss_to_header_value()},
+      {"From", email.from |> addresses_to_header_value()},
+      {"To", email.to |> addresses_to_header_value()},
       {"Subject", email.subject},
       {"reply-to", email.reply_to},
-      {"Cc", email.cc |> addresss_to_header_value()},
-      {"Bcc", email.bcc |> addresss_to_header_value()}
+      {"Cc", email.cc |> addresses_to_header_value()},
+      {"Bcc", email.bcc |> addresses_to_header_value()}
     ] ++ additional_headers
 
     headers
@@ -105,7 +105,7 @@ defmodule Epoxi.Render do
     }
   end
 
-  def addresss_to_header_value(addresses) do
+  def addresses_to_header_value(addresses) do
     addresses
     |> Parsing.normalize_addresses()
     |> Enum.join(", ")

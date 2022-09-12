@@ -10,7 +10,7 @@ defmodule Epox.RenderTest do
       subject: "Test Subject",
       from: "Senders Name <from@test.com>",
       reply_to: "no-reply@test.com",
-      to: "Recipient Name <to@test.com>",
+      to: ["Recipient Name <to@test.com>"],
       cc: [],
       bcc: [],
       attachments: [],
@@ -27,7 +27,7 @@ defmodule Epox.RenderTest do
     test "returns a list of tuples for the email" do
       email = %Email{
         from: "test@from.com",
-        to: "test@to.com, bar@biz.com, Hello <biz@baz.com>",
+        to: ["test@to.com", "bar@biz.com", "Hello <biz@baz.com>"],
         reply_to: "no-reply@test.com",
         cc: ["cc1@test.com", "cc2@test.com"],
         bcc: ["bcc1@test.com", "bcc2@test.com"],
@@ -55,7 +55,7 @@ defmodule Epox.RenderTest do
     test "rejects blank, nil, or empty headers" do
       email = %Email{
         from: "test@from.com",
-        to: "test@to.com",
+        to: ["test@to.com"],
         subject: "foo"
       }
 
@@ -74,7 +74,7 @@ defmodule Epox.RenderTest do
       subject: "Test Subject",
       from: "Senders Name <from@test.com>",
       reply_to: "no-reply@test.com",
-      to: "Recipient Name <to@test.com>",
+      to: ["Recipient Name <to@test.com>"],
       cc: [],
       bcc: [],
       attachments: [],
@@ -97,7 +97,7 @@ defmodule Epox.RenderTest do
     assert %{
       "transfer-encoding": "quoted-printable",
       "content-type-params": [],
-      "disposition": "inline",
+      disposition: "inline",
       "disposition-params": []
     } = params
 
@@ -109,7 +109,7 @@ defmodule Epox.RenderTest do
         %{
           "transfer-encoding": "quoted-printable",
           "content-type-params": [],
-          "disposition": "inline",
+          disposition: "inline",
           "disposition-params": []
         },
       "This is the plain text body"},
@@ -120,7 +120,7 @@ defmodule Epox.RenderTest do
         %{
           "transfer-encoding": "quoted-printable",
           "content-type-params": [],
-          "disposition": "inline",
+          disposition: "inline",
           "disposition-params": []
         },
       "<div>This is the html body</div>"}
