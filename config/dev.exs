@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :epoxi, context_module: Epoxi.SMTP.LocalContext,
   delivery_producer_module: {Epoxi.Queues.Inbox, []}
