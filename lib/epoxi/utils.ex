@@ -1,4 +1,4 @@
-defmodule Epoxi.SMTP.Utils do
+defmodule Epoxi.Utils do
   @moduledoc """
   Utilities to help with general SMTP interaction
   """
