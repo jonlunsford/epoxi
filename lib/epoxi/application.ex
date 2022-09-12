@@ -9,7 +9,7 @@ defmodule Epoxi.Application do
       #Epoxi.Queues.Supervisor,
       #Epoxi.Mail.Decoder,
       #Epoxi.Mail.SenderSupervisor
-      Epoxi.Mail.DeliveryPipeline
+      #Epoxi.Mail.DeliveryPipeline
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
