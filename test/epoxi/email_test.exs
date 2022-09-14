@@ -32,12 +32,12 @@ defmodule Epoxi.EmailTest do
       assert %{content_type: "multipart/mixed"} = email
     end
 
-    test "it defaults to alternative" do
+    test "it defaults to text/html" do
       email =
         %Email{}
         |> Email.put_content_type()
 
-      assert %{content_type: "multipart/alternative"} = email
+      assert %{content_type: "text/html"} = email
     end
   end
 end

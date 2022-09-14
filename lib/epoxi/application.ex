@@ -4,13 +4,7 @@ defmodule Epoxi.Application do
   use Application
 
   def start(_type, _args) do
-    children = [
-      #Epoxi.Metrics.Statsd,
-      #Epoxi.Queues.Supervisor,
-      #Epoxi.Mail.Decoder,
-      #Epoxi.Mail.SenderSupervisor
-      #Epoxi.Mail.DeliveryPipeline
-    ]
+    children = []
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
