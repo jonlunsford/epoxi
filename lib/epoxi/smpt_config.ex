@@ -19,9 +19,3 @@ defmodule Epoxi.SmtpConfig do
           tls: boolean
         }
 end
-
-defimpl Epoxi.Adapter, for: Epoxi.SmtpConfig do
-  def send_blocking(config, email, message) do
-    Epoxi.ExternalSmtpAdapter.send_blocking(config, email, message)
-  end
-end

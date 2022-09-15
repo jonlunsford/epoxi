@@ -1,6 +1,6 @@
-defmodule Epoxi.ExternalSmtpAdapter do
+defmodule Epoxi.Adapters.SMTP do
   @moduledoc """
-  Delivers mail to external SMTP servers
+  Delivers mail to SMTP servers
   """
 
   alias Epoxi.SmtpConfig
@@ -14,15 +14,7 @@ defmodule Epoxi.ExternalSmtpAdapter do
   def send_blocking(%SmtpConfig{} = config, email, message) do
     config = Map.to_list(config)
 
-    response =
-      :gen_smtp_client.send_blocking(
-        {
-          email.from,
-          email.to,
-          message
-        },
-        config
-      )
+    response = :gen_smtp_client.send_blocking({email.from, email.to, message}, config)
 
     case response do
       {:error, _, reason} -> {:error, reason, response}
