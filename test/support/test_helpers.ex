@@ -26,6 +26,24 @@ defmodule Epoxi.Test.Helpers do
     |> Map.put("test#{num}@test.com", %{first_name: "test#{num}first", last_name: "test#{num}last"})
   end
 
+  def build_send_args(email_attrs \\ %{}) do
+    attrs = %{
+      from: "test@test.com",
+      to: ["test1@test.com"],
+      subject: "Test Subject",
+      text: "Hello Text! <%= first_name %> <%= last_name %>",
+      html: "Hello HTML! <%= first_name %> <%= last_name %>",
+      data: [first_name: "foo", last_name: "bar"]
+    }
+    |> Map.merge(email_attrs)
+
+    context = %Epoxi.TestContext{}
+    email = struct(%Epoxi.Email{}, attrs)
+    message = Epoxi.Render.encode(email)
+
+    [context, email, message]
+  end
+
   def text_email do
     {"text", "plain",
      [
