@@ -43,11 +43,29 @@ defmodule Epoxi.Adapters.SMTP do
   Delivers email over an existing socket connection, this can be used when
   PIPELINING on the receiving server is available.
   """
-  def deliver(socket, email, message) do
-    :gen_smtp_client.deliver(
+  def deliver(_socket, []) do
+    {:ok, :all_queued}
+  end
+
+  def deliver(socket, [email | rest]) do
+    message = Epoxi.Render.encode(email)
+
+    response = :gen_smtp_client.deliver(
       socket,
       {email.from, email.to, message}
     )
+
+    case response do
+      {:ok, receipt} ->
+        IO.inspect(receipt)
+        deliver(socket, rest)
+
+      {:error, _type, reason} ->
+        IO.inspect(reason)
+
+      {:error, reason} ->
+        IO.inspect(reason)
+    end
   end
 
   defp handle_send_result({:ok, receipt}) do

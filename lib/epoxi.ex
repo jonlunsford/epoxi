@@ -14,7 +14,7 @@ defmodule Epoxi do
     def send(context, email, message)
 
     @doc "send an email over a persistent socket"
-    def deliver(context, email, message)
+    def deliver(emails, context)
   end
 
   def send_blocking(email, context) do
@@ -42,33 +42,17 @@ defmodule Epoxi do
   end
 
   def deliver(emails, context) do
-    config =
-      context.config
-      |> Map.to_list()
-
-    case :gen_smtp_client.open(config) do
+    case Adapter.deliver(emails, context) do
       {:error, reason} ->
-        Logger.debug("Error opening socket: #{IO.inspect(reason)}")
+        Logger.debug("Error delivering: #{IO.inspect(reason)}")
 
-      {:ok, socket} ->
-        context = %{context | socket: socket}
-
-        emails
-        |> Enum.map(fn (email) ->
-          message = encode_message(email)
-
-          Adapter.deliver(context, email, message)
-        end)
+      {:ok, receipt} ->
+        Logger.debug("Messages queued: #{IO.inspect(receipt)}")
     end
-
-    # 1. Open socket
-    # 2. Deliver repeatedly, while {:ok, receipt}
-    #case Adapter.deliver(context, )
   end
 
   defp encode_message(%Epoxi.Email{} = email, context) do
     email
-    |> context.compiler.compile()
-    |> Render.encode()
+    |> Render.encode(context.compiler)
   end
 end

@@ -7,9 +7,9 @@ defmodule Epoxi.Render do
   alias Epoxi.Email
   alias Epoxi.Parsing
 
-  def encode(%Email{} = email) do
+  def encode(%Email{} = email, compiler \\ Epoxi.EExCompiler) do
     email
-    |> Epoxi.EExCompiler.compile()
+    |> compiler.compile()
     |> render()
     |> :mimemail.encode()
   end

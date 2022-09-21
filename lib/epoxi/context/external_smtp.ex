@@ -37,9 +37,17 @@ defimpl Epoxi.Adapter, for: Epoxi.Context.ExternalSmtp do
     Epoxi.Adapters.SMTP.send(config, email, message)
   end
 
-  def deliver(context, emails, message) do
-    config = Epoxi.Context.ExternalSmtp.put_config(context.config, email)
+  def deliver(emails, context) do
+    # TODO: Cleaner config for a batch of emails, going to the same relay/host
+    config = Epoxi.Context.ExternalSmtp.put_config(context.config, List.first(emails))
+    config = Map.to_list(config)
 
-    Epoxi.Adapters.SMTP.deliver(context.socket, email, message)
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        Epoxi.Adapters.SMTP.deliver(socket, emails)
+
+      {:error, reason} ->
+        IO.inspect(reason)
+    end
   end
 end
