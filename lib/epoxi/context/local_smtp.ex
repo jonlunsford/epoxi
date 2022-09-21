@@ -26,7 +26,7 @@ defimpl Epoxi.Adapter, for: Epoxi.Context.LocalSmtp do
     Epoxi.Adapters.SMTP.send(context.config, email, message)
   end
 
-  def deliver(emails, context) do
+  def deliver(context, emails) do
     Epoxi.Adapters.SMTP.deliver(emails, context)
   end
 end

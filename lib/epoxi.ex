@@ -42,12 +42,12 @@ defmodule Epoxi do
   end
 
   def deliver(emails, context) do
-    case Adapter.deliver(emails, context) do
-      {:error, reason} ->
-        Logger.debug("Error delivering: #{IO.inspect(reason)}")
-
+    case Adapter.deliver(context, emails) do
       {:ok, receipt} ->
         Logger.debug("Messages queued: #{IO.inspect(receipt)}")
+
+      {error, reason} ->
+        Logger.debug("Error delivering: #{error} - #{reason}")
     end
   end
 
