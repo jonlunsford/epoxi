@@ -6,20 +6,36 @@ defmodule Epox.RenderTest do
 
   describe "encode/1" do
     test "it returns a string" do
-    email = %Email{
-      subject: "Test Subject",
-      from: "Senders Name <from@test.com>",
-      reply_to: "no-reply@test.com",
-      to: ["Recipient Name <to@test.com>"],
-      cc: [],
-      bcc: [],
-      attachments: [],
-      data: %{},
-      html: "<div>This is the html body</div>",
-      text: "This is the plain text body"
-    }
+      email = %Email{
+        subject: "Test Subject",
+        from: "Senders Name <from@test.com>",
+        reply_to: "no-reply@test.com",
+        to: ["Recipient Name <to@test.com>"],
+        cc: [],
+        bcc: [],
+        attachments: [],
+        data: %{},
+        html: "<div>This is the html body</div>",
+        text: "This is the plain text body"
+      }
 
       assert is_bitstring(Render.encode(email))
+    end
+
+    test "it compiles EEx" do
+      email = %Email{
+        subject: "Test Subject",
+        from: "Senders Name <from@test.com>",
+        reply_to: "no-reply@test.com",
+        to: ["Recipient Name <to@test.com>"],
+        data: [first_name: "foo"],
+        html: "<div>Hello <%= first_name %></div>",
+        text: "Hello <%= first_name %>"
+      }
+
+      result = Render.encode(email)
+
+      assert result =~ "<div>Hello foo</div>"
     end
   end
 
