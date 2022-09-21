@@ -15,4 +15,53 @@ defmodule Epoxi.Adapters.SMTPTest do
                message
              )
   end
+
+  test "send/3 returns success" do
+    [context, email, message] = Helpers.build_send_args()
+
+    assert {:ok, _response} =
+             SMTP.send(
+               context.config,
+               email,
+               message
+             )
+  end
+
+  test "deliver/3 returns success" do
+    [context, email, message] = Helpers.build_send_args()
+    config = Map.to_list(context.config)
+
+    {:ok, socket} = :gen_smtp_client.open(config)
+
+    assert {:ok, _response} =
+             SMTP.deliver(
+               socket,
+               email,
+               message
+             )
+  end
+
+  test "deliver/3 handles many sends with the same socket" do
+    context = %Epoxi.TestContext{}
+    config = Map.to_list(context.config)
+
+    {:ok, socket} = :gen_smtp_client.open(config)
+
+    emails =
+      (0..10)
+      |> Enum.map(fn (i) ->
+        Helpers.build_email(%{to: ["test#{i}@test.com"]})
+      end)
+
+    Enum.each(emails, fn (email) ->
+      message = Epoxi.Render.encode(email)
+
+      assert {:ok, _response} =
+               SMTP.deliver(
+                 socket,
+                 email,
+                 message
+               )
+    end)
+  end
 end

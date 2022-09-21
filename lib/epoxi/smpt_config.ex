@@ -8,7 +8,8 @@ defmodule Epoxi.SmtpConfig do
             port: 25,
             ssl: false,
             auth: :never,
-            tls: false
+            tls: false,
+            no_mx_lookups: true
 
   @type t :: %__MODULE__{
           relay: String.t(),
@@ -16,6 +17,7 @@ defmodule Epoxi.SmtpConfig do
           port: integer,
           ssl: boolean,
           auth: Atom.t(),
-          tls: boolean
+          tls: boolean,
+          no_mx_lookups: boolean
         }
 end
