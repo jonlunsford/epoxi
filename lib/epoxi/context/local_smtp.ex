@@ -1,6 +1,7 @@
 defmodule Epoxi.Context.LocalSmtp do
   defstruct adapter: Epoxi.Adapters.SMTP,
-            compiler: Epoxi.Compilers.EEx,
+            compiler: Epoxi.EExCompiler,
+            socket: nil,
             config: %Epoxi.SmtpConfig{
               port: 2525,
               relay: "localhost",
@@ -10,7 +11,8 @@ defmodule Epoxi.Context.LocalSmtp do
 
   @type t :: %__MODULE__{
           adapter: Epoxi.Adapters.SMTP,
-          compiler: Epoxi.Compilers.EEx,
+          compiler: Epoxi.EExCompiler,
+          socket: term(),
           config: Epoxi.SmtpConfig.t()
         }
 end
@@ -18,5 +20,13 @@ end
 defimpl Epoxi.Adapter, for: Epoxi.Context.LocalSmtp do
   def send_blocking(context, email, message) do
     Epoxi.Adapters.SMTP.send_blocking(context.config, email, message)
+  end
+
+  def send(context, email, message) do
+    Epoxi.Adapters.SMTP.send(context.config, email, message)
+  end
+
+  def deliver(context, email, message) do
+    Epoxi.Adapters.SMTP.deliver(context.socket, email, message)
   end
 end
