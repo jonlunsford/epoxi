@@ -2,6 +2,7 @@ defmodule Epoxi.EExCompiler do
   @moduledoc """
   Compiles %Epoxi.Email{} content with EEx
   """
+  defstruct email: %Epoxi.Email{}
 
   def compile(%Epoxi.Email{html: h, text: t, data: data} = email)
       when is_bitstring(h) and is_bitstring(t) do
