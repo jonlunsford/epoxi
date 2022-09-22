@@ -26,6 +26,19 @@ defmodule Epoxi.Test.Helpers do
     |> Map.put("test#{num}@test.com", %{first_name: "test#{num}first", last_name: "test#{num}last"})
   end
 
+  def context_for_mailtrap do
+    config = %Epoxi.SmtpConfig{
+      username: System.get_env("MAILTRAP_USER"),
+      password: System.get_env("MAILTRAP_PW"),
+      relay: "smtp.mailtrap.io",
+      hostname: "mailtrap.io",
+      port: 25,
+      auth: :always
+    }
+
+    %Epoxi.Context.ExternalSmtp{config: config}
+  end
+
   def generate_emails(batch_size) do
     (1..batch_size)
     |> Enum.map(fn (i) ->
