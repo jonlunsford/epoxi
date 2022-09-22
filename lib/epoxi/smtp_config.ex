@@ -9,7 +9,11 @@ defmodule Epoxi.SmtpConfig do
             ssl: false,
             auth: :never,
             tls: false,
-            no_mx_lookups: true
+            no_mx_lookups: true,
+            username: "",
+            retries: 1,
+            protocol: :smtp,
+            password: ""
 
   @type t :: %__MODULE__{
           relay: String.t(),
@@ -18,6 +22,10 @@ defmodule Epoxi.SmtpConfig do
           ssl: boolean,
           auth: Atom.t(),
           tls: boolean,
-          no_mx_lookups: boolean
+          no_mx_lookups: boolean,
+          username: String.t(),
+          password: String.t(),
+          protocol: Atom.t(),
+          retries: number
         }
 end
