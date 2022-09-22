@@ -28,16 +28,17 @@ defmodule Epoxi.Adapters.SMTPTest do
   end
 
   test "deliver/3 returns success" do
-    [context, email, message] = Helpers.build_send_args()
+    context = %Epoxi.TestContext{}
     config = Map.to_list(context.config)
 
     {:ok, socket} = :gen_smtp_client.open(config)
 
+    emails = Helpers.generate_emails(1)
+
     assert {:ok, _response} =
              SMTP.deliver(
                socket,
-               email,
-               message
+               emails
              )
   end
 
@@ -49,14 +50,10 @@ defmodule Epoxi.Adapters.SMTPTest do
 
     emails = Helpers.generate_emails(10)
 
-    Enum.each(emails, fn (email) ->
-      message = Epoxi.Render.encode(email)
-
-      assert {:ok, _response} =
-               SMTP.deliver(
-                 socket,
-                 emails
-               )
-    end)
+    assert {:ok, _response} =
+             SMTP.deliver(
+               socket,
+               emails
+             )
   end
 end
