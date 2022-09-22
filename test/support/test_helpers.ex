@@ -26,6 +26,13 @@ defmodule Epoxi.Test.Helpers do
     |> Map.put("test#{num}@test.com", %{first_name: "test#{num}first", last_name: "test#{num}last"})
   end
 
+  def generate_emails(batch_size) do
+    (1..batch_size)
+    |> Enum.map(fn (i) ->
+      build_email(%{to: ["test#{i}@test.com"]})
+    end)
+  end
+
   def build_email(email_attrs \\ %{}) do
     attrs = %{
       from: "test@test.com",

@@ -47,11 +47,7 @@ defmodule Epoxi.Adapters.SMTPTest do
 
     {:ok, socket} = :gen_smtp_client.open(config)
 
-    emails =
-      (0..10)
-      |> Enum.map(fn (i) ->
-        Helpers.build_email(%{to: ["test#{i}@test.com"]})
-      end)
+    emails = Helpers.generate_emails(10)
 
     Enum.each(emails, fn (email) ->
       message = Epoxi.Render.encode(email)
@@ -59,8 +55,7 @@ defmodule Epoxi.Adapters.SMTPTest do
       assert {:ok, _response} =
                SMTP.deliver(
                  socket,
-                 email,
-                 message
+                 emails
                )
     end)
   end
