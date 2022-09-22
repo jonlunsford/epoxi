@@ -5,3 +5,4 @@ support_dir
 |> Enum.map(&Code.compile_file/1)
 
 ExUnit.start()
+Epoxi.TestSmtpServer.start(2525)

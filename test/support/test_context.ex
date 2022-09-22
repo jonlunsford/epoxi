@@ -1,12 +1,14 @@
-defmodule Epoxi.Test.Context do
-  @moduledoc "Responsible to configuring SMTP test context"
+defmodule Epoxi.TestContext do
+  @moduledoc "Context for test SMPT adapters"
 
-  @doc "Returns %Mailman.Context{} configured for testing"
-  @spec set(hostname :: String.t()) :: %Mailman.Context{}
-  def set(_hostname) do
-    %Mailman.Context{
-      config: %Mailman.TestConfig{},
-      composer: %Mailman.EexComposeConfig{}
-    }
-  end
+  # Defaults are bare minimum to get a delivery. Ideally, serious senders
+  # configure ssl, tls, dkim, etc.
+  defstruct adapter: Epoxi.Adapters.SMTP,
+            compiler: Epoxi.Compilers.EEx,
+            config: %Epoxi.SmtpConfig{
+              port: 2525,
+              relay: "localhost",
+              hostname: "localhost",
+              auth: :never
+            }
 end

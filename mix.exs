@@ -24,8 +24,8 @@ defmodule Epoxi.MixProject do
     [
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:gen_stage, "~> 1.1"},
+      {:gen_smtp, "~> 1.2"},
       {:broadway, "~> 1.0"},
-      {:mailman, "~> 0.4.3"},
       {:poison, "~> 5.0"}
 
       #{:telemetry, "~> 1.0"},

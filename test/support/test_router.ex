@@ -3,7 +3,7 @@ defmodule Epoxi.Test.Router do
   This module is used to stand in as a real Epoxi.SMTP.Router in test
   """
 
-  alias Epoxi.SMTP.Utils
+  alias Epoxi.Utils
 
   @spec get_mx_hosts(hostname :: String.t(), lookup_handler :: Fun.t()) :: List.t(Tuple.t())
   def get_mx_hosts(hostname, lookup_handler \\ &test_res_lookup/1) do
