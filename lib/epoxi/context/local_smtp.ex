@@ -27,6 +27,14 @@ defimpl Epoxi.Adapter, for: Epoxi.Context.LocalSmtp do
   end
 
   def deliver(context, emails) do
-    Epoxi.Adapters.SMTP.deliver(emails, context)
+    config = Map.to_list(context.config)
+
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        Epoxi.Adapters.SMTP.deliver(socket, emails)
+
+      {:error, reason} ->
+        IO.inspect(reason)
+    end
   end
 end

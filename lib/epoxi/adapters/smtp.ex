@@ -70,17 +70,21 @@ defmodule Epoxi.Adapters.SMTP do
 
   defp handle_send_result({:ok, receipt}) do
     # TODO: Handle send results async and supervised
-    Logger.debug("Received send result: {:ok, #{IO.inspect(receipt)}}")
-    :ok
+    Logger.debug("Received send result: :ok")
+    IO.inspect(receipt)
+    {:ok, receipt}
   end
 
-  defp handle_send_result({:error, _, reason}) do
-    Logger.debug("Received send result: {:error, #{IO.inspect(reason)}}")
-    :error
+  defp handle_send_result({:error, type, reason}) do
+    Logger.debug("Received send result: :error")
+    IO.inspect(reason, label: "reason")
+    IO.inspect(type, label: "type")
+    {:error, reason}
   end
 
   defp handle_send_result({:exit, reason}) do
-    Logger.debug("Received send result: {:exit, #{IO.inspect(reason)}}")
-    :exit
+    Logger.debug("Received send result: :exit")
+    IO.inspect(reason)
+    {:exit, reason}
   end
 end

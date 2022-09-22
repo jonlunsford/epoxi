@@ -22,10 +22,16 @@ defmodule Epoxi do
 
     case Adapter.send_blocking(context, email, message) do
       {:error, reason} ->
-        Logger.debug("Error sending: #{IO.inspect(reason)}")
+        Logger.debug("Error sending")
+        IO.inspect(reason)
+
+      {:error, _, reason} ->
+        Logger.debug("Error sending")
+        IO.inspect(reason)
 
       {:ok, response} ->
-        Logger.debug("Success sending: #{IO.inspect(response)}")
+        Logger.debug("Success sending")
+        IO.inspect(response)
     end
   end
 
@@ -36,8 +42,8 @@ defmodule Epoxi do
       {:error, reason} ->
         Logger.debug("Error sending: #{IO.inspect(reason)}")
 
-      {:ok, pid} ->
-        Logger.debug("Message queued: #{IO.inspect(pid)}")
+      {:ok, _pid} ->
+        Logger.debug("Message queued")
     end
   end
 

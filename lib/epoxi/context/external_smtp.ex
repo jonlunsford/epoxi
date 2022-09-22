@@ -11,7 +11,7 @@ defmodule Epoxi.Context.ExternalSmtp do
           socket: term()
         }
 
-  def put_config(config, email) do
+  def put_config(%Epoxi.SmtpConfig{relay: ""} = config, email) do
     from_hostname = Epoxi.Parsing.get_hostname(email.from)
 
     # TODO: pre-cache/lookup mx records for popular domains
@@ -22,6 +22,8 @@ defmodule Epoxi.Context.ExternalSmtp do
 
     %{config | relay: relay, hostname: from_hostname}
   end
+
+  def put_config(config, _email), do: config
 end
 
 defimpl Epoxi.Adapter, for: Epoxi.Context.ExternalSmtp do
