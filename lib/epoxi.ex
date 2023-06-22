@@ -1,5 +1,6 @@
 defmodule Epoxi do
   require Logger
+
   @moduledoc """
   Epoxi - A complete mail server
   """
@@ -22,16 +23,19 @@ defmodule Epoxi do
 
     case Adapter.send_blocking(context, email, message) do
       {:error, reason} ->
-        Logger.debug("Error sending")
-        IO.inspect(reason)
+        Logger.debug(%{label: "Error sending", data: reason})
+
+        {:error, reason}
 
       {:error, _, reason} ->
-        Logger.debug("Error sending")
-        IO.inspect(reason)
+        Logger.debug(%{label: "Error sending", data: reason})
+
+        {:error, reason}
 
       {:ok, response} ->
-        Logger.debug("Success sending")
-        IO.inspect(response)
+        Logger.debug(%{label: "Success sending", data: response})
+
+        {:ok, response}
     end
   end
 

@@ -17,13 +17,16 @@ defmodule Epoxi.Test.Helpers do
   end
 
   def build_batch_data(size) do
-    (1..size)
+    1..size
     |> Enum.reduce(%{}, &generate_data/2)
   end
 
   def generate_data(num, map) do
     map
-    |> Map.put("test#{num}@test.com", %{first_name: "test#{num}first", last_name: "test#{num}last"})
+    |> Map.put("test#{num}@test.com", %{
+      first_name: "test#{num}first",
+      last_name: "test#{num}last"
+    })
   end
 
   def context_for_mailtrap do
@@ -40,22 +43,23 @@ defmodule Epoxi.Test.Helpers do
   end
 
   def generate_emails(batch_size) do
-    (1..batch_size)
-    |> Enum.map(fn (i) ->
+    1..batch_size
+    |> Enum.map(fn i ->
       build_email(%{to: ["test#{i}@test.com"]})
     end)
   end
 
   def build_email(email_attrs \\ %{}) do
-    attrs = %{
-      from: "test@test.com",
-      to: ["test1@test.com"],
-      subject: "Test Subject",
-      text: "Hello Text! <%= first_name %> <%= last_name %>",
-      html: "Hello HTML! <%= first_name %> <%= last_name %>",
-      data: [first_name: "foo", last_name: "bar"]
-    }
-    |> Map.merge(email_attrs)
+    attrs =
+      %{
+        from: "test@test.com",
+        to: ["test1@test.com"],
+        subject: "Test Subject",
+        text: "Hello Text! <%= first_name %> <%= last_name %>",
+        html: "Hello HTML! <%= first_name %> <%= last_name %>",
+        data: [first_name: "foo", last_name: "bar"]
+      }
+      |> Map.merge(email_attrs)
 
     struct(%Epoxi.Email{}, attrs)
   end

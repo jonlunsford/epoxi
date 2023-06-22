@@ -1,7 +1,6 @@
 defmodule Epoxi.JSONDecoder do
   @moduledoc """
-  Takes in a list of JSON strings and decodes them as [%MailMan.Email{}] and
-  broadcasts the results to it's consumers
+  Takes in a list of JSON strings and decodes them as `%Epoxi.Email{}`
   """
 
   require Logger

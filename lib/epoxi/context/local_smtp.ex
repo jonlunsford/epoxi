@@ -1,4 +1,7 @@
 defmodule Epoxi.Context.LocalSmtp do
+  @moduledoc """
+  Context for sending emails to a local SMTP server.
+  """
   defstruct adapter: Epoxi.Adapters.SMTP,
             compiler: Epoxi.EExCompiler,
             socket: nil,

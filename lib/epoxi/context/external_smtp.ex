@@ -1,4 +1,7 @@
 defmodule Epoxi.Context.ExternalSmtp do
+  @moduledoc """
+  Context for sending emails to an external SMTP server.
+  """
   defstruct adapter: Epoxi.Adapters.SMTP,
             compiler: Epoxi.EExCompiler,
             config: %Epoxi.SmtpConfig{},

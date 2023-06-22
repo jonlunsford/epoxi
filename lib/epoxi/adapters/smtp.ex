@@ -1,5 +1,6 @@
 defmodule Epoxi.Adapters.SMTP do
   require Logger
+
   @moduledoc """
   Delivers mail to SMTP servers
   """
@@ -50,41 +51,38 @@ defmodule Epoxi.Adapters.SMTP do
   def deliver(socket, [email | rest]) do
     message = Epoxi.Render.encode(email)
 
-    response = :gen_smtp_client.deliver(
-      socket,
-      {email.from, email.to, message}
-    )
+    response =
+      :gen_smtp_client.deliver(
+        socket,
+        {email.from, email.to, message}
+      )
 
     case response do
       {:ok, receipt} ->
-        IO.inspect(receipt)
+        Logger.debug("Delivered: #{receipt}")
         deliver(socket, rest)
 
       {:error, _type, reason} ->
-        IO.inspect(reason)
+        Logger.debug("Received error: #{reason}")
 
       {:error, reason} ->
-        IO.inspect(reason)
+        Logger.debug("Received error: #{reason}")
     end
   end
 
   defp handle_send_result({:ok, receipt}) do
     # TODO: Handle send results async and supervised
     Logger.debug("Received send result: :ok")
-    IO.inspect(receipt)
     {:ok, receipt}
   end
 
   defp handle_send_result({:error, type, reason}) do
-    Logger.debug("Received send result: :error")
-    IO.inspect(reason, label: "reason")
-    IO.inspect(type, label: "type")
+    Logger.debug("Received send result: :error #{type} #{reason}")
     {:error, reason}
   end
 
   defp handle_send_result({:exit, reason}) do
-    Logger.debug("Received send result: :exit")
-    IO.inspect(reason)
+    Logger.debug("Received send result: :exit #{reason}")
     {:exit, reason}
   end
 end
