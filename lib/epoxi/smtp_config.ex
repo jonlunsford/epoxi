@@ -1,5 +1,5 @@
 defmodule Epoxi.SmtpConfig do
-  @moduledoc "Config for external SMPT adapters"
+  @moduledoc "Config for external SMTP adapters"
 
   # Defaults are bare minimum to get a delivery. Ideally, serious senders
   # configure ssl, tls, dkim, etc.

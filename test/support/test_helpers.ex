@@ -13,7 +13,7 @@ defmodule Epoxi.Test.Helpers do
       html: "Hello HTML! <%= first_name %> <%= last_name %>",
       data: data
     }
-    |> Jason.encode!
+    |> Jason.encode!()
   end
 
   def build_batch_data(size) do
