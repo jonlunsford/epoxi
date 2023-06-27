@@ -30,21 +30,23 @@ defmodule Epoxi.Context.ExternalSmtp do
 end
 
 defimpl Epoxi.Adapter, for: Epoxi.Context.ExternalSmtp do
+  alias Epoxi.Context.ExternalSmtp
+
   def send_blocking(context, email, message) do
-    config = Epoxi.Context.ExternalSmtp.put_config(context.config, email)
+    config = ExternalSmtp.put_config(context.config, email)
 
     Epoxi.Adapters.SMTP.send_blocking(config, email, message)
   end
 
   def send(context, email, message) do
-    config = Epoxi.Context.ExternalSmtp.put_config(context.config, email)
+    config = ExternalSmtp.put_config(context.config, email)
 
     Epoxi.Adapters.SMTP.send(config, email, message)
   end
 
   def deliver(context, emails) do
     # TODO: Cleaner config for a batch of emails, going to the same relay/host
-    config = Epoxi.Context.ExternalSmtp.put_config(context.config, List.first(emails))
+    config = ExternalSmtp.put_config(context.config, List.first(emails))
     config = Map.to_list(config)
 
     case :gen_smtp_client.open(config) do

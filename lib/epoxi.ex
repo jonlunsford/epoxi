@@ -5,16 +5,33 @@ defmodule Epoxi do
   Epoxi - A complete mail server
   """
 
-  alias Epoxi.Render
+  alias Epoxi.{Render, Context, Email}
 
   defprotocol Adapter do
     @doc "Send an email and block waiting for the reply."
+    @spec send_blocking(
+            context :: Context.LocalSmtp.t() | Context.ExternalSmtp.t(),
+            email :: Email.t(),
+            message :: binary()
+          ) ::
+            {:ok, binary()} | {:error, binary()} | {:error, binary(), binary()}
     def send_blocking(context, email, message)
 
     @doc "Send a non-blocking email"
+    @spec send(
+            context :: Context.LocalSmtp.t() | Context.ExternalSmtp.t(),
+            email :: Email.t(),
+            message :: binary()
+          ) ::
+            {:ok, pid()} | {:error, binary()}
     def send(context, email, message)
 
-    @doc "send an email over a persistent socket"
+    @doc "send a a batch emails over a persistent socket"
+    @spec deliver(
+            context :: Context.LocalSmtp.t() | Context.ExternalSmtp.t(),
+            emails :: [Email.t()]
+          ) ::
+            {:ok, :all_queued} | {:error, binary()}
     def deliver(emails, context)
   end
 
@@ -23,18 +40,12 @@ defmodule Epoxi do
 
     case Adapter.send_blocking(context, email, message) do
       {:error, reason} ->
-        Logger.debug(%{label: "Error sending", data: reason})
-
         {:error, reason}
 
       {:error, _, reason} ->
-        Logger.debug(%{label: "Error sending", data: reason})
-
         {:error, reason}
 
       {:ok, response} ->
-        Logger.debug(%{label: "Success sending", data: response})
-
         {:ok, response}
     end
   end
@@ -44,20 +55,20 @@ defmodule Epoxi do
 
     case Adapter.send(context, email, message) do
       {:error, reason} ->
-        Logger.debug("Error sending: #{IO.inspect(reason)}")
+        {:error, reason}
 
-      {:ok, _pid} ->
-        Logger.debug("Message queued")
+      {:ok, pid} ->
+        {:ok, pid}
     end
   end
 
   def deliver(emails, context) do
     case Adapter.deliver(context, emails) do
       {:ok, receipt} ->
-        Logger.debug("Messages queued: #{IO.inspect(receipt)}")
+        {:ok, receipt}
 
       {error, reason} ->
-        Logger.debug("Error delivering: #{error} - #{reason}")
+        {error, reason}
     end
   end
 

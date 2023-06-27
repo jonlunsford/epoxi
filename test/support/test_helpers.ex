@@ -1,7 +1,7 @@
 defmodule Epoxi.Test.Helpers do
   @moduledoc "Generic test helper functions"
 
-  def gen_json_payload(batch_size) do
+  def gen_json_payload(batch_size, attrs \\ %{}) do
     data = build_batch_data(batch_size)
     recipients = Map.keys(data)
 
@@ -10,9 +10,10 @@ defmodule Epoxi.Test.Helpers do
       to: recipients,
       subject: "Test Subject",
       text: "Hello Text! <%= first_name %> <%= last_name %>",
-      html: "Hello HTML! <%= first_name %> <%= last_name %>",
+      html: "<h3>Hello HTML!</h3> <p><strong><%= first_name %></strong>, <%= last_name %></p>",
       data: data
     }
+    |> Map.merge(attrs)
     |> Jason.encode!()
   end
 

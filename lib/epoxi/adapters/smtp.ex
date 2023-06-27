@@ -1,6 +1,4 @@
 defmodule Epoxi.Adapters.SMTP do
-  require Logger
-
   @moduledoc """
   Delivers mail to SMTP servers
   """
@@ -58,31 +56,26 @@ defmodule Epoxi.Adapters.SMTP do
       )
 
     case response do
-      {:ok, receipt} ->
-        Logger.debug("Delivered: #{receipt}")
+      {:ok, _receipt} ->
         deliver(socket, rest)
 
-      {:error, _type, reason} ->
-        Logger.debug("Received error: #{reason}")
+      {:error, type, reason} ->
+        {:error, type, reason}
 
       {:error, reason} ->
-        Logger.debug("Received error: #{reason}")
+        {:error, reason}
     end
   end
 
   defp handle_send_result({:ok, receipt}) do
-    # TODO: Handle send results async and supervised
-    Logger.debug("Received send result: :ok")
     {:ok, receipt}
   end
 
   defp handle_send_result({:error, type, reason}) do
-    Logger.debug("Received send result: :error #{type} #{reason}")
-    {:error, reason}
+    {:error, type, reason}
   end
 
   defp handle_send_result({:exit, reason}) do
-    Logger.debug("Received send result: :exit #{reason}")
     {:exit, reason}
   end
 end
