@@ -21,23 +21,23 @@ defmodule Epoxi.Context.LocalSmtp do
 end
 
 defimpl Epoxi.Adapter, for: Epoxi.Context.LocalSmtp do
-  def send_blocking(context, email, message) do
-    Epoxi.Adapters.SMTP.send_blocking(context.config, email, message)
+  def send_blocking(email, context) do
+    Epoxi.Adapters.SMTP.send_blocking(email, context.config)
   end
 
-  def send(context, email, message) do
-    Epoxi.Adapters.SMTP.send(context.config, email, message)
+  def send(email, context) do
+    Epoxi.Adapters.SMTP.send(email, context.config)
   end
 
-  def deliver(context, emails) do
+  def deliver(emails, context) do
     config = Map.to_list(context.config)
 
     case :gen_smtp_client.open(config) do
       {:ok, socket} ->
-        Epoxi.Adapters.SMTP.deliver(socket, emails)
+        Epoxi.Adapters.SMTP.deliver(emails, socket)
 
-      {:error, reason} ->
-        IO.inspect(reason)
+      {:error, type, reason} ->
+        {:error, type, reason}
     end
   end
 end

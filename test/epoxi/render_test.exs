@@ -57,15 +57,15 @@ defmodule Epox.RenderTest do
       headers = Render.headers_for(email)
 
       assert [
-        {"From", "Test <test@from.com>"},
-        {"To", "Test <test@to.com>, Bar <bar@biz.com>, Hello <biz@baz.com>"},
-        {"Subject", "foo"},
-        {"reply-to", "no-reply@test.com"},
-        {"Cc", "Cc1 <cc1@test.com>, Cc2 <cc2@test.com>"},
-        {"Bcc", "Bcc1 <bcc1@test.com>, Bcc2 <bcc2@test.com>"},
-        {"X-Custom-header", "custom_value"},
-        {"X-Custom-foo", "custom_bar"}
-      ] = headers
+               {"From", "Test <test@from.com>"},
+               {"To", "Test <test@to.com>, Bar <bar@biz.com>, Hello <biz@baz.com>"},
+               {"Subject", "foo"},
+               {"reply-to", "no-reply@test.com"},
+               {"Cc", "Cc1 <cc1@test.com>, Cc2 <cc2@test.com>"},
+               {"Bcc", "Bcc1 <bcc1@test.com>, Bcc2 <bcc2@test.com>"},
+               {"X-Custom-header", "custom_value"},
+               {"X-Custom-foo", "custom_bar"}
+             ] = headers
     end
 
     test "rejects blank, nil, or empty headers" do
@@ -78,10 +78,10 @@ defmodule Epox.RenderTest do
       headers = Render.headers_for(email)
 
       assert [
-        {"From", "Test <test@from.com>"},
-        {"To", "Test <test@to.com>"},
-        {"Subject", "foo"}
-      ] = headers
+               {"From", "Test <test@from.com>"},
+               {"To", "Test <test@to.com>"},
+               {"Subject", "foo"}
+             ] = headers
     end
   end
 
@@ -103,43 +103,42 @@ defmodule Epox.RenderTest do
 
     assert type == "multipart"
     assert subtype == "mixed"
+
     assert [
-      {"From", "Senders Name <from@test.com>"},
-      {"To", "Recipient Name <to@test.com>"},
-      {"Subject", "Test Subject"},
-      {"reply-to", "no-reply@test.com"}
-    ] = headers
+             {"From", "Senders Name <from@test.com>"},
+             {"To", "Recipient Name <to@test.com>"},
+             {"Subject", "Test Subject"},
+             {"reply-to", "no-reply@test.com"}
+           ] = headers
 
     assert %{
-      "transfer-encoding": "quoted-printable",
-      "content-type-params": [],
-      disposition: "inline",
-      "disposition-params": []
-    } = params
+             "transfer-encoding": "quoted-printable",
+             "content-type-params": [],
+             disposition: "inline",
+             "disposition-params": []
+           } = params
 
     assert [
-      {"text", "plain",
-        [
-          {"Content-type", "text/plain"}
-        ],
-        %{
-          "transfer-encoding": "quoted-printable",
-          "content-type-params": [],
-          disposition: "inline",
-          "disposition-params": []
-        },
-      "This is the plain text body"},
-      {"text", "html",
-        [
-          {"Content-type", "text/html"}
-        ],
-        %{
-          "transfer-encoding": "quoted-printable",
-          "content-type-params": [],
-          disposition: "inline",
-          "disposition-params": []
-        },
-      "<div>This is the html body</div>"}
-    ] = bodies
+             {"text", "plain",
+              [
+                {"Content-type", "text/plain"}
+              ],
+              %{
+                "transfer-encoding": "quoted-printable",
+                "content-type-params": [],
+                disposition: "inline",
+                "disposition-params": []
+              }, "This is the plain text body"},
+             {"text", "html",
+              [
+                {"Content-type", "text/html"}
+              ],
+              %{
+                "transfer-encoding": "quoted-printable",
+                "content-type-params": [],
+                disposition: "inline",
+                "disposition-params": []
+              }, "<div>This is the html body</div>"}
+           ] = bodies
   end
 end

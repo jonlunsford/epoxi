@@ -2,7 +2,8 @@ defmodule Epoxi.Test.Helpers do
   @moduledoc "Generic test helper functions"
 
   def gen_json_payload(batch_size, attrs \\ %{}) do
-    data = build_batch_data(batch_size)
+    {to_domain, attrs} = Map.pop(attrs, :to_domain)
+    data = build_batch_data(batch_size, %{to_domain: to_domain})
     recipients = Map.keys(data)
 
     %{
@@ -17,14 +18,18 @@ defmodule Epoxi.Test.Helpers do
     |> Jason.encode!()
   end
 
-  def build_batch_data(size) do
+  def build_batch_data(size, opts \\ %{}) do
     1..size
-    |> Enum.reduce(%{}, &generate_data/2)
+    |> Enum.reduce(%{}, fn num, map ->
+      generate_data(num, map, opts)
+    end)
   end
 
-  def generate_data(num, map) do
+  def generate_data(num, map, opts \\ %{}) do
+    to_domain = opts[:to_domain] || "test.com"
+
     map
-    |> Map.put("test#{num}@test.com", %{
+    |> Map.put("test#{num}@#{to_domain}", %{
       first_name: "test#{num}first",
       last_name: "test#{num}last"
     })
