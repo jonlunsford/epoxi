@@ -8,7 +8,7 @@ defmodule Epoxi.Adapters.SMTPTest do
   test "send_blocking/3 returns success" do
     [context, email, _message] = Helpers.build_send_args()
 
-    assert {:ok, _response} = SMTP.send_blocking(email, context.config)
+    assert "1\r\n" = SMTP.send_blocking(email, context.config)
   end
 
   test "send/3 returns success" do

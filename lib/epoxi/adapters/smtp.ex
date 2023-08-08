@@ -13,25 +13,10 @@ defmodule Epoxi.Adapters.SMTP do
     message = Epoxi.Render.encode(email)
     config = Map.to_list(config)
 
-    response =
-      :gen_smtp_client.send_blocking(
-        {email.from, email.to, message},
-        config
-      )
-
-    case response do
-      "1\r\n" ->
-        {:ok, response}
-
-      {:ok, receipt} ->
-        {:ok, receipt}
-
-      {:error, type, reason} ->
-        {:error, type, reason}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    :gen_smtp_client.send_blocking(
+      {email.from, email.to, message},
+      config
+    )
   end
 
   @doc """
@@ -41,23 +26,11 @@ defmodule Epoxi.Adapters.SMTP do
     message = Epoxi.Render.encode(email)
     config = Map.to_list(config)
 
-    response =
-      :gen_smtp_client.send(
-        {email.from, email.to, message},
-        config,
-        &handle_send_result/1
-      )
-
-    case response do
-      {:ok, receipt} ->
-        {:ok, receipt}
-
-      {:error, type, reason} ->
-        {:error, type, reason}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    :gen_smtp_client.send(
+      {email.from, email.to, message},
+      config,
+      &handle_send_result/1
+    )
   end
 
   @doc """
@@ -80,9 +53,6 @@ defmodule Epoxi.Adapters.SMTP do
     case response do
       {:ok, _receipt} ->
         deliver(rest, socket)
-
-      {:error, type, reason} ->
-        {:error, type, reason}
 
       {:error, reason} ->
         {:error, reason}
