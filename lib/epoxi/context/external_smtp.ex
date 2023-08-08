@@ -53,27 +53,24 @@ end
 defimpl Epoxi.Adapter, for: Epoxi.Context.ExternalSmtp do
   alias Epoxi.Context.ExternalSmtp
 
-  def send_blocking(context, email, message) do
+  def send_blocking(email, context) do
     config = ExternalSmtp.put_config(context.config, email)
 
-    Epoxi.Adapters.SMTP.send_blocking(config, email, message)
+    Epoxi.Adapters.SMTP.send_blocking(email, config)
   end
 
-  def send(context, email, message) do
+  def send(email, context) do
     config = ExternalSmtp.put_config(context.config, email)
 
-    Epoxi.Adapters.SMTP.send(config, email, message)
+    Epoxi.Adapters.SMTP.send(email, config)
   end
 
-  def deliver(context, emails) do
-    # TODO: Cleaner config for a batch of emails, going to the same relay/host
-
-    # partitions = ExternalSmtp.partition(emails, partition_size: context.config.max_batch_size)
+  def deliver(emails, context) do
     config = ExternalSmtp.put_config(context.config, List.first(emails))
 
     case :gen_smtp_client.open(config) do
       {:ok, socket} ->
-        Epoxi.Adapters.SMTP.deliver(socket, emails)
+        Epoxi.Adapters.SMTP.deliver(emails, socket)
 
       {:error, type, reason} ->
         {:error, type, reason}

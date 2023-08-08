@@ -9,15 +9,15 @@ defmodule Epoxi do
 
   defprotocol Adapter do
     @doc "Send an email and block waiting for the reply."
-    @spec send_blocking(Context.t(), Email.t()) :: {:ok, binary()} | {:error, term()}
+    @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | {:error, term()}
     def send_blocking(email, context)
 
     @doc "Send a non-blocking email"
-    @spec send(Context.t(), Email.t()) :: :ok | {:error, term()}
+    @spec send(Email.t(), Context.t()) :: :ok | {:error, term()}
     def send(email, context)
 
     @doc "send a of batch emails over a persistent socket"
-    @spec deliver(Context.t(), [Email.t()]) :: {:ok, :all_queued} | {:error, term()}
+    @spec deliver([Email.t()], Context.t()) :: {:ok, :all_queued} | {:error, term()}
     def deliver(emails, context)
   end
 
