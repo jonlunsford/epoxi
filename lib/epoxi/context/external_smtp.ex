@@ -14,13 +14,41 @@ defmodule Epoxi.Context.ExternalSmtp do
           socket: term()
         }
 
+  alias Epoxi.Utils
+
+  def send_blocking(email, context) do
+    config = put_config(context.config, email)
+
+    Epoxi.Adapters.SMTP.send_blocking(email, config)
+  end
+
+  def send(email, context) do
+    config = put_config(context.config, email)
+
+    Epoxi.Adapters.SMTP.send(email, config)
+  end
+
+  def deliver(emails, context) do
+    config =
+      put_config(context.config, List.first(emails))
+      |> Utils.map_to_list()
+
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        Epoxi.Adapters.SMTP.deliver(emails, socket)
+
+      {:error, type, reason} ->
+        {:error, type, reason}
+    end
+  end
+
   def put_config(%Epoxi.SmtpConfig{relay: ""} = config, email) do
     from_hostname = Epoxi.Parsing.get_hostname(email.from)
 
     # TODO: pre-cache/lookup mx records for popular domains
     {_priority, relay} =
       Epoxi.Parsing.get_hostname(email.to)
-      |> Epoxi.Utils.mx_lookup()
+      |> Utils.mx_lookup()
       |> List.first()
 
     %{config | relay: relay, hostname: from_hostname}
@@ -47,33 +75,5 @@ defmodule Epoxi.Context.ExternalSmtp do
       |> Enum.chunk_every(partition_size)
       |> Enum.map(fn part -> {hostname, part} end)
     end)
-  end
-end
-
-defimpl Epoxi.Adapter, for: Epoxi.Context.ExternalSmtp do
-  alias Epoxi.Context.ExternalSmtp
-
-  def send_blocking(email, context) do
-    config = ExternalSmtp.put_config(context.config, email)
-
-    Epoxi.Adapters.SMTP.send_blocking(email, config)
-  end
-
-  def send(email, context) do
-    config = ExternalSmtp.put_config(context.config, email)
-
-    Epoxi.Adapters.SMTP.send(email, config)
-  end
-
-  def deliver(emails, context) do
-    config = ExternalSmtp.put_config(context.config, List.first(emails))
-
-    case :gen_smtp_client.open(config) do
-      {:ok, socket} ->
-        Epoxi.Adapters.SMTP.deliver(emails, socket)
-
-      {:error, type, reason} ->
-        {:error, type, reason}
-    end
   end
 end

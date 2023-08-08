@@ -18,9 +18,7 @@ defmodule Epoxi.Context.LocalSmtp do
           socket: term(),
           config: Epoxi.SmtpConfig.t()
         }
-end
 
-defimpl Epoxi.Adapter, for: Epoxi.Context.LocalSmtp do
   def send_blocking(email, context) do
     Epoxi.Adapters.SMTP.send_blocking(email, context.config)
   end

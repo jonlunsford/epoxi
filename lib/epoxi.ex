@@ -5,31 +5,17 @@ defmodule Epoxi do
   Epoxi - A complete mail server
   """
 
-  alias Epoxi.{Context, Email}
-
-  defprotocol Adapter do
-    @doc "Send an email and block waiting for the reply."
-    @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | {:error, term()}
-    def send_blocking(email, context)
-
-    @doc "Send a non-blocking email"
-    @spec send(Email.t(), Context.t()) :: :ok | {:error, term()}
-    def send(email, context)
-
-    @doc "send a of batch emails over a persistent socket"
-    @spec deliver([Email.t()], Context.t()) :: {:ok, :all_queued} | {:error, term()}
-    def deliver(emails, context)
-  end
-
   def send_blocking(email, context) do
-    Adapter.send_blocking(email, context)
+    context().send_blocking(email, context)
   end
 
   def send(email, context) do
-    Adapter.send(email, context)
+    context().send(email, context)
   end
 
   def deliver(emails, context) do
-    Adapter.deliver(emails, context)
+    context().deliver(emails, context)
   end
+
+  defp context(), do: Application.get_env(:epoxi, :context_module, Epoxi.Context.ExternalSmtp)
 end

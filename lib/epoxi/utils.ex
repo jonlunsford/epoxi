@@ -14,8 +14,16 @@ defmodule Epoxi.Utils do
   @doc "Validates required option is present"
   def validate_required_option(options, option) do
     case Map.fetch(options, option) do
-      {:ok, _value} -> options
-      :error -> Map.update(options, :errors, ["#{option} is required"], &(&1 ++ ["#{option} is required"]))
+      {:ok, _value} ->
+        options
+
+      :error ->
+        Map.update(
+          options,
+          :errors,
+          ["#{option} is required"],
+          &(&1 ++ ["#{option} is required"])
+        )
     end
   end
 
@@ -24,9 +32,13 @@ defmodule Epoxi.Utils do
     case Map.fetch(options, key) do
       {:ok, ^value} ->
         deps
-        |> Enum.reduce(fn(dep, _opt) -> validate_required_option(options, dep) end)
-      {:ok, _result} -> options
-      :error -> options
+        |> Enum.reduce(fn dep, _opt -> validate_required_option(options, dep) end)
+
+      {:ok, _result} ->
+        options
+
+      :error ->
+        options
     end
   end
 
@@ -39,7 +51,7 @@ defmodule Epoxi.Utils do
   def mx_lookup(domain, lookup_handler \\ &inet_res_lookup/1) do
     with :ok <- load_ns(),
          result <- lookup_handler.(domain),
-      do: Enum.sort(result)
+         do: Enum.sort(result)
   end
 
   @doc "Default mx lookup handler using :inet_res"
@@ -74,11 +86,18 @@ defmodule Epoxi.Utils do
     not_a_map
   end
 
+  def map_to_list(map) do
+    map
+    |> Map.from_struct()
+    |> Enum.into([], fn {k, v} -> {k, v} end)
+  end
+
   defp load_ns() do
     case List.keyfind(:inet_db.get_rc(), :nameserver, 0) do
       nil ->
         :inet_config.do_load_resolv(:os.type(), :longnames)
         :ok
+
       _ ->
         :ok
     end
