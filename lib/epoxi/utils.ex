@@ -88,8 +88,28 @@ defmodule Epoxi.Utils do
 
   def map_to_list(map) do
     map
-    |> Map.from_struct()
     |> Enum.into([], fn {k, v} -> {k, v} end)
+  end
+
+  def group_by_domain(emails) do
+    group_by_domain(emails, partition_size: 100)
+  end
+
+  @doc """
+  Accepts a list of emails and partitions them by the recipients (to) hostname.
+  """
+  @spec group_by_domain([Epoxi.Email.t()], partition_size: integer) ::
+          [{String.t(), [Epoxi.Email.t()]}]
+  def group_by_domain(emails, partition_size: partition_size) do
+    emails
+    |> Enum.group_by(fn email ->
+      Epoxi.Parsing.get_hostname(email.to)
+    end)
+    |> Enum.flat_map(fn {hostname, emails} ->
+      emails
+      |> Enum.chunk_every(partition_size)
+      |> Enum.map(fn part -> {hostname, part} end)
+    end)
   end
 
   defp load_ns() do

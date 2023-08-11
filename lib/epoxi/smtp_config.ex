@@ -30,4 +30,25 @@ defmodule Epoxi.SmtpConfig do
           protocol: Atom.t(),
           retries: number
         }
+
+  alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
+
+  @spec for_email(Email.t(), t()) :: Keyword.t()
+  def for_email(%Email{} = email, %SmtpConfig{} = config) do
+    Parsing.get_hostname(email.to)
+    |> for_domain(config)
+  end
+
+  @spec for_domain(String.t(), t()) :: Keyword.t()
+  def for_domain(domain, %SmtpConfig{} = config) do
+    {_priority, relay} =
+      Utils.mx_lookup(domain)
+      |> List.first()
+
+    config
+    |> Map.from_struct()
+    |> Map.put(:relay, relay)
+    |> Map.put(:hostname, domain)
+    |> Utils.map_to_list()
+  end
 end

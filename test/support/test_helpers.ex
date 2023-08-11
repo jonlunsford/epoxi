@@ -3,7 +3,7 @@ defmodule Epoxi.Test.Helpers do
 
   def gen_json_payload(batch_size, attrs \\ %{}) do
     {to_domain, attrs} = Map.pop(attrs, :to_domain)
-    data = build_batch_data(batch_size, %{to_domain: to_domain})
+    data = build_batch_data(batch_size, %{to_domain: to_domain, to: attrs[:to]})
     recipients = Map.keys(data)
 
     %{
@@ -27,9 +27,10 @@ defmodule Epoxi.Test.Helpers do
 
   def generate_data(num, map, opts \\ %{}) do
     to_domain = opts[:to_domain] || "test.com"
+    email = List.first(opts[:to]) || "test#{num}@#{to_domain}"
 
     map
-    |> Map.put("test#{num}@#{to_domain}", %{
+    |> Map.put(email, %{
       first_name: "test#{num}first",
       last_name: "test#{num}last"
     })
@@ -45,7 +46,7 @@ defmodule Epoxi.Test.Helpers do
       auth: :always
     }
 
-    %Epoxi.Context.ExternalSmtp{config: config}
+    %Epoxi.Context{config: config}
   end
 
   def generate_emails(batch_size) do
@@ -72,7 +73,7 @@ defmodule Epoxi.Test.Helpers do
 
   def build_send_args(email_attrs \\ %{}) do
     email = build_email(email_attrs)
-    context = %Epoxi.TestContext{}
+    context = %Epoxi.Context{}
     message = Epoxi.Render.encode(email)
 
     [context, email, message]
