@@ -11,7 +11,7 @@ defmodule Epoxi.Render do
     email
     |> compiler.compile()
     |> render()
-    |> :mimemail.encode()
+    |> :mimemail.encode([])
   end
 
   def render(%Email{} = email) do
@@ -35,14 +35,15 @@ defmodule Epoxi.Render do
       end)
       |> Enum.reverse()
 
-    headers = [
-      {"From", email.from |> addresses_to_header_value()},
-      {"To", email.to |> addresses_to_header_value()},
-      {"Subject", email.subject},
-      {"reply-to", email.reply_to},
-      {"Cc", email.cc |> addresses_to_header_value()},
-      {"Bcc", email.bcc |> addresses_to_header_value()}
-    ] ++ additional_headers
+    headers =
+      [
+        {"From", email.from |> addresses_to_header_value()},
+        {"To", email.to |> addresses_to_header_value()},
+        {"Subject", email.subject},
+        {"reply-to", email.reply_to},
+        {"Cc", email.cc |> addresses_to_header_value()},
+        {"Bcc", email.bcc |> addresses_to_header_value()}
+      ] ++ additional_headers
 
     headers
     |> Enum.reject(fn {_header, value} ->

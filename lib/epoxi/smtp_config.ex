@@ -9,6 +9,7 @@ defmodule Epoxi.SmtpConfig do
             ssl: false,
             auth: :never,
             tls: false,
+            max_batch_size: 100,
             no_mx_lookups: true,
             username: "",
             retries: 1,
@@ -22,10 +23,38 @@ defmodule Epoxi.SmtpConfig do
           ssl: boolean,
           auth: Atom.t(),
           tls: boolean,
+          max_batch_size: integer,
           no_mx_lookups: boolean,
           username: String.t(),
           password: String.t(),
           protocol: Atom.t(),
           retries: number
         }
+
+  alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
+
+  @spec for_email(Email.t(), t()) :: Keyword.t()
+  def for_email(%Email{} = email, %SmtpConfig{} = config) do
+    Parsing.get_hostname(email.to)
+    |> for_domain(config)
+  end
+
+  @spec for_domain(String.t(), t()) :: Keyword.t()
+  def for_domain(domain, %SmtpConfig{} = config) do
+    relay =
+      case Utils.mx_lookup(domain) do
+        [first_record | _rest] ->
+          {_priority, relay} = first_record
+          relay
+
+        [] ->
+          config.relay
+      end
+
+    config
+    |> Map.from_struct()
+    |> Map.put(:relay, relay)
+    |> Map.put(:hostname, domain)
+    |> Utils.map_to_list()
+  end
 end

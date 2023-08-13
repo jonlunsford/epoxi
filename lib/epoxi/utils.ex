@@ -14,8 +14,16 @@ defmodule Epoxi.Utils do
   @doc "Validates required option is present"
   def validate_required_option(options, option) do
     case Map.fetch(options, option) do
-      {:ok, _value} -> options
-      :error -> Map.update(options, :errors, ["#{option} is required"], &(&1 ++ ["#{option} is required"]))
+      {:ok, _value} ->
+        options
+
+      :error ->
+        Map.update(
+          options,
+          :errors,
+          ["#{option} is required"],
+          &(&1 ++ ["#{option} is required"])
+        )
     end
   end
 
@@ -24,9 +32,13 @@ defmodule Epoxi.Utils do
     case Map.fetch(options, key) do
       {:ok, ^value} ->
         deps
-        |> Enum.reduce(fn(dep, _opt) -> validate_required_option(options, dep) end)
-      {:ok, _result} -> options
-      :error -> options
+        |> Enum.reduce(fn dep, _opt -> validate_required_option(options, dep) end)
+
+      {:ok, _result} ->
+        options
+
+      :error ->
+        options
     end
   end
 
@@ -39,7 +51,7 @@ defmodule Epoxi.Utils do
   def mx_lookup(domain, lookup_handler \\ &inet_res_lookup/1) do
     with :ok <- load_ns(),
          result <- lookup_handler.(domain),
-      do: Enum.sort(result)
+         do: Enum.sort(result)
   end
 
   @doc "Default mx lookup handler using :inet_res"
@@ -74,11 +86,38 @@ defmodule Epoxi.Utils do
     not_a_map
   end
 
+  def map_to_list(map) do
+    map
+    |> Enum.into([], fn {k, v} -> {k, v} end)
+  end
+
+  def group_by_domain(emails) do
+    group_by_domain(emails, partition_size: 100)
+  end
+
+  @doc """
+  Accepts a list of emails and partitions them by the recipients (to) hostname.
+  """
+  @spec group_by_domain([Epoxi.Email.t()], partition_size: integer) ::
+          [{String.t(), [Epoxi.Email.t()]}]
+  def group_by_domain(emails, partition_size: partition_size) do
+    emails
+    |> Enum.group_by(fn email ->
+      Epoxi.Parsing.get_hostname(email.to)
+    end)
+    |> Enum.flat_map(fn {hostname, emails} ->
+      emails
+      |> Enum.chunk_every(partition_size)
+      |> Enum.map(fn part -> {hostname, part} end)
+    end)
+  end
+
   defp load_ns() do
     case List.keyfind(:inet_db.get_rc(), :nameserver, 0) do
       nil ->
         :inet_config.do_load_resolv(:os.type(), :longnames)
         :ok
+
       _ ->
         :ok
     end
