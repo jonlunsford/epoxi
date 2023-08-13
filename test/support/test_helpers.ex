@@ -27,7 +27,7 @@ defmodule Epoxi.Test.Helpers do
 
   def generate_data(num, map, opts \\ %{}) do
     to_domain = opts[:to_domain] || "test.com"
-    email = List.first(opts[:to]) || "test#{num}@#{to_domain}"
+    email = if opts[:to], do: List.first(opts[:to]), else: "test#{num}@#{to_domain}"
 
     map
     |> Map.put(email, %{
@@ -73,7 +73,15 @@ defmodule Epoxi.Test.Helpers do
 
   def build_send_args(email_attrs \\ %{}) do
     email = build_email(email_attrs)
-    context = %Epoxi.Context{}
+
+    context = %Epoxi.Context{
+      config: %Epoxi.SmtpConfig{
+        relay: "localhost",
+        port: 2525,
+        auth: :never
+      }
+    }
+
     message = Epoxi.Render.encode(email)
 
     [context, email, message]

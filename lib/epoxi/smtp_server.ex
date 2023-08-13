@@ -1,4 +1,4 @@
-defmodule Epoxi.LocalSmtpServer do
+defmodule Epoxi.SmtpServer do
   require Logger
   @behaviour :gen_smtp_server_session
 

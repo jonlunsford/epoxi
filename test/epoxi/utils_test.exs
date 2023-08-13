@@ -1,11 +1,11 @@
-defmodule Epoxi.Context.ExternalSmtpTest do
+defmodule Epoxi.UtilsTest do
   use ExUnit.Case, async: true
 
   alias Epoxi.Test.Helpers
   alias Epoxi.JSONDecoder
-  alias Epoxi.Context.ExternalSmtp
+  alias Epoxi.Utils
 
-  test "partition/1 groups emails by their to domains" do
+  test "group_by_domain/1 groups emails by their to domains" do
     gmail =
       Helpers.gen_json_payload(3, %{to_domain: "gmail.com"})
       |> JSONDecoder.decode()
@@ -21,14 +21,14 @@ defmodule Epoxi.Context.ExternalSmtpTest do
     emails = gmail ++ hotmail ++ outlook
 
     [{"gmail.com", gmails}, {"hotmail.com", hotmails}, {"outlook.com", outlooks}] =
-      ExternalSmtp.partition(Enum.shuffle(emails))
+      Utils.group_by_domain(Enum.shuffle(emails))
 
     assert Enum.count(gmails) == 3
     assert Enum.count(hotmails) == 2
     assert Enum.count(outlooks) == 1
   end
 
-  test "partition/1 batches by a partition_size" do
+  test "group_by_domain/1 batches by a partition_size" do
     gmail =
       Helpers.gen_json_payload(10, %{to_domain: "gmail.com"})
       |> JSONDecoder.decode()
@@ -44,7 +44,7 @@ defmodule Epoxi.Context.ExternalSmtpTest do
       {"gmail.com", gmails_2},
       {"hotmail.com", hotmails_1},
       {"hotmail.com", hotmails_2}
-    ] = ExternalSmtp.partition(Enum.shuffle(emails), partition_size: 5)
+    ] = Utils.group_by_domain(Enum.shuffle(emails), partition_size: 5)
 
     assert Enum.count(gmails_1) == 5
     assert Enum.count(gmails_2) == 5

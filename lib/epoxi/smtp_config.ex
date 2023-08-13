@@ -41,9 +41,15 @@ defmodule Epoxi.SmtpConfig do
 
   @spec for_domain(String.t(), t()) :: Keyword.t()
   def for_domain(domain, %SmtpConfig{} = config) do
-    {_priority, relay} =
-      Utils.mx_lookup(domain)
-      |> List.first()
+    relay =
+      case Utils.mx_lookup(domain) do
+        [first_record | _rest] ->
+          {_priority, relay} = first_record
+          relay
+
+        [] ->
+          config.relay
+      end
 
     config
     |> Map.from_struct()
