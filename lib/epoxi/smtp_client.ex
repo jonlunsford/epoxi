@@ -38,7 +38,7 @@ defmodule Epoxi.SmtpClient do
   end
 
   @doc """
-  Delivers email over an existing socket connection, this can be used when
+  Delivers email over a persistent socket connection, this can be used when
   PIPELINING on the receiving server is available.
   """
   @spec send_bulk([Email.t()], :gen_smtp_client.socket()) ::
@@ -59,7 +59,8 @@ defmodule Epoxi.SmtpClient do
     {:ok, :all_queued}
   end
 
-  defp deliver([], _socket) do
+  defp deliver([], socket) do
+    :gen_smtp_client.close(socket)
     {:ok, :all_queued}
   end
 

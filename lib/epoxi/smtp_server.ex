@@ -1,22 +1,24 @@
+# credo:disable-for-this-file
 defmodule Epoxi.SmtpServer do
-  require Logger
+  @moduledoc """
+  SMTP server that relays mail
+  """
+
   @behaviour :gen_smtp_server_session
 
   def start(port) do
     :gen_smtp_server.start(
       __MODULE__,
-      [[], [{:allow_bare_newlines, true}, {:port, port}]]
+      [{:allow_bare_newlines, true}, {:port, port}]
     )
   end
 
   def init(hostname, _session_count, _address, options) do
-    banner = [hostname, " ESMTP (Epoxi Local SMTP)"]
+    banner = [hostname, " ESMTP (Epoxi SMTP)"]
     {:ok, banner, options}
   end
 
-  def handle_DATA(_from, _to, data, state) do
-    Logger.info("handle_DATA: #{IO.inspect(data)}")
-
+  def handle_DATA(_from, _to, _data, state) do
     {:ok, "1", state}
   end
 
@@ -48,20 +50,20 @@ defmodule Epoxi.SmtpServer do
     {:ok, state}
   end
 
-  def handle_VRFY(_address, state) do
-    {:ok, state}
+  def handle_VRFY(address, state) do
+    {:ok, address, state}
   end
 
   def handle_STARTTLS(state) do
     {:ok, state}
   end
 
-  def handle_other("PING", _args, state) do
-    {["250 OK: PONG"], state}
+  def handle_other("PING", _args, _state) do
+    {:noreply, "250 OK: PONG"}
   end
 
-  def terminate(_reason, state) do
-    {:ok, state}
+  def terminate(reason, state) do
+    {:ok, reason, state}
   end
 
   def code_change(_old, state, _extra) do
