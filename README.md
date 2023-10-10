@@ -1,6 +1,6 @@
 # Epoxi
 
-EPOXI, like the spacecraft, is an ambitions Elixir OTP MTA (Mail Transfer Agent).
+EPOXI, like the spacecraft, is an Elixir OTP MDA (Mail Delivery Agent).
 
 ## Installation
 
