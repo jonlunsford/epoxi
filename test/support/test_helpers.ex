@@ -15,7 +15,7 @@ defmodule Epoxi.Test.Helpers do
       data: data
     }
     |> Map.merge(attrs)
-    |> Jason.encode!()
+    |> JSON.encode!()
   end
 
   def build_batch_data(size, opts \\ %{}) do
