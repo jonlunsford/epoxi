@@ -6,13 +6,9 @@ defmodule Epoxi.JSONDecoder do
   require Logger
 
   def decode(json_string) when is_binary(json_string) do
-    with {:ok, decoded} <- JSON.decode(json_string),
-         map <- Epoxi.Utils.atomize_keys(decoded),
-         emails <- cast_map_to_email_struct(map) do
-      emails
-    else
-      {:error, reason} ->
-        {:error, reason}
+    case JSON.decode(json_string, keys: :atoms) do
+      {:ok, result} -> cast_map_to_email_struct(result)
+      {:error, _reason} -> {:error, "Failed to decode JSON."}
     end
   end
 
