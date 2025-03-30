@@ -63,8 +63,8 @@ defmodule Epox.RenderTest do
                {"reply-to", "no-reply@test.com"},
                {"Cc", "Cc1 <cc1@test.com>, Cc2 <cc2@test.com>"},
                {"Bcc", "Bcc1 <bcc1@test.com>, Bcc2 <bcc2@test.com>"},
-               {"X-Custom-header", "custom_value"},
-               {"X-Custom-foo", "custom_bar"}
+               {"X-Custom-foo", "custom_bar"},
+               {"X-Custom-header", "custom_value"}
              ] = headers
     end
 
