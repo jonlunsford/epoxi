@@ -9,8 +9,9 @@ defmodule Epoxi.SmtpClient do
   Sends an email and blocks until a response is received. Returns an error tuple
   or a binary that is the send receipt returned from the receiving server
   """
-  @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | {:error, term()}
+  @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | binary() | {:error, term()}
   def send_blocking(%Email{} = email, %Context{} = context) do
+    email = Email.put_content_type(email)
     message = Render.encode(email, context.compiler)
     config = SmtpConfig.for_email(email, context.config)
 
@@ -25,6 +26,7 @@ defmodule Epoxi.SmtpClient do
   """
   @spec send_async(Email.t(), Context.t(), callback :: function) :: :ok
   def send_async(%Email{} = email, %Context{} = context, callback) do
+    email = Email.put_content_type(email)
     message = Render.encode(email)
     config = SmtpConfig.for_email(email, context.config)
 
@@ -45,9 +47,10 @@ defmodule Epoxi.SmtpClient do
           {:ok, :all_queued} | {:error, term(), term()}
   def send_bulk(emails, context) do
     for {domain, emails} <- Utils.group_by_domain(emails) do
+      emails = Enum.map(emails, &Email.put_content_type/1)
       config = SmtpConfig.for_domain(domain, context.config)
 
-      case :gen_smtp_client.open(config) do
+      case(:gen_smtp_client.open(config)) do
         {:ok, socket} ->
           deliver(emails, socket)
 
