@@ -10,7 +10,6 @@ defmodule Epoxi.EmailTest do
         %Email{html: "foo"}
         |> Email.put_content_type()
 
-
       assert %{content_type: "text/html"} = email
     end
 
@@ -19,7 +18,6 @@ defmodule Epoxi.EmailTest do
         %Email{text: "foo"}
         |> Email.put_content_type()
 
-
       assert %{content_type: "text/plain"} = email
     end
 
@@ -27,7 +25,6 @@ defmodule Epoxi.EmailTest do
       email =
         %Email{text: "foo", html: "bar"}
         |> Email.put_content_type()
-
 
       assert %{content_type: "multipart/mixed"} = email
     end
