@@ -1,4 +1,9 @@
 use Mix.Config
 
-config :epoxi, context_module: Epoxi.SMTP.Context,
-  delivery_producer_module: {Epoxi.Queues.Inbox, []}
+config :epoxi,
+  smtp_config: %{
+    port: 2525,
+    relay: "localhost",
+    hostname: "localhost",
+    auth: :never
+  }
