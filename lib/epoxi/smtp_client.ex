@@ -22,7 +22,7 @@ defmodule Epoxi.SmtpClient do
          ) do
       {:ok, receipt} -> {:ok, receipt}
       receipt when is_binary(receipt) -> {:ok, receipt}
-      error -> error
+      error -> {:error, error}
     end
   end
 
