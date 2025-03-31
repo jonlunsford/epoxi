@@ -4,16 +4,7 @@ defmodule EpoxiTest do
   doctest Epoxi
 
   setup do
-    context = %Context{
-      adapter: Epoxi.Adapters.SMTP,
-      compiler: Epoxi.EExCompiler,
-      config: %Epoxi.SmtpConfig{
-        port: 2525,
-        relay: "localhost",
-        hostname: "localhost",
-        auth: :never
-      }
-    }
+    context = Context.new()
 
     {:ok, %{context: context}}
   end

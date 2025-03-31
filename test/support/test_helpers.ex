@@ -40,7 +40,7 @@ defmodule Epoxi.Test.Helpers do
     config = %Epoxi.SmtpConfig{
       username: System.get_env("MAILTRAP_USER"),
       password: System.get_env("MAILTRAP_PW"),
-      relay: "smtp.mailtrap.io",
+      relay: "sandbox.smtp.mailtrap.io",
       hostname: "mailtrap.io",
       port: 25,
       auth: :always
