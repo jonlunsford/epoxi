@@ -2,6 +2,7 @@ defmodule Epoxi.SmtpClient do
   @moduledoc """
   Delivers mail to SMTP servers
   """
+  require Logger
 
   alias Epoxi.{Email, Context, Render, SmtpConfig, Utils}
 
@@ -9,16 +10,20 @@ defmodule Epoxi.SmtpClient do
   Sends an email and blocks until a response is received. Returns an error tuple
   or a binary that is the send receipt returned from the receiving server
   """
-  @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | binary() | {:error, term()}
+  @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | {:error, term()}
   def send_blocking(%Email{} = email, %Context{} = context) do
     email = Email.put_content_type(email)
     message = Render.encode(email, context.compiler)
     config = SmtpConfig.for_email(email, context.config)
 
-    :gen_smtp_client.send_blocking(
-      {email.from, email.to, message},
-      config
-    )
+    case :gen_smtp_client.send_blocking(
+           {email.from, email.to, message},
+           config
+         ) do
+      {:ok, receipt} -> {:ok, receipt}
+      receipt when is_binary(receipt) -> {:ok, receipt}
+      error -> {:error, error}
+    end
   end
 
   @doc """
