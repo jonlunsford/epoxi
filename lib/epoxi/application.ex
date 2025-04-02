@@ -5,8 +5,14 @@ defmodule Epoxi.Application do
 
   def start(_type, _args) do
     children = [
-      {Task.Supervisor, name: Epoxi.RouterTasks},
-      {Task.Supervisor, name: Epoxi.DeliveryTasks}
+      # {Task.Supervisor, name: Epoxi.RouterTasks},
+      # {Task.Supervisor, name: Epoxi.DeliveryTasks},
+
+      # Queue components
+      {OffBroadwayMemory.Buffer, name: :inbox},
+
+      # Processor components
+      {Epoxi.Queue.Processor, [concurrency: 10]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
