@@ -9,5 +9,5 @@ config :epoxi,
   },
   producer_module: OffBroadwayMemory.Producer,
   producer_options: [
-    name: :inbox
+    buffer: :inbox
   ]
