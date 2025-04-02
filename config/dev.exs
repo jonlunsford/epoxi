@@ -6,4 +6,8 @@ config :epoxi,
     relay: "localhost",
     hostname: "localhost",
     auth: :never
-  }
+  },
+  producer_module: OffBroadwayMemory.Producer,
+  producer_options: [
+    name: :inbox
+  ]

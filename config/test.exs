@@ -8,4 +8,6 @@ config :epoxi,
     relay: "localhost",
     hostname: "localhost",
     auth: :never
-  }
+  },
+  producer_module: Broadway.DummyProducer,
+  producer_options: []
