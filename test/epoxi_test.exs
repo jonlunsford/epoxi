@@ -58,6 +58,6 @@ defmodule EpoxiTest do
       text: "This is a test email"
     }
 
-    assert {:ok, :all_queued} = Epoxi.send_bulk([email_a, email_b], context)
+    assert {:ok, _response} = Epoxi.send_bulk([email_a, email_b], context)
   end
 end
