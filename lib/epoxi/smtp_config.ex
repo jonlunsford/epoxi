@@ -35,14 +35,14 @@ defmodule Epoxi.SmtpConfig do
 
   alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
 
-  @spec for_email(Email.t(), t()) :: Keyword.t()
-  def for_email(%Email{} = email, %SmtpConfig{} = config) do
-    Parsing.get_hostname(email.to)
-    |> for_domain(config)
+  @spec for_email(t(), Email.t()) :: Keyword.t()
+  def for_email(%SmtpConfig{} = config, %Email{} = email) do
+    hostname = Parsing.get_hostname(email.to)
+    for_domain(config, hostname)
   end
 
-  @spec for_domain(String.t(), t()) :: Keyword.t()
-  def for_domain(domain, %SmtpConfig{} = config) do
+  @spec for_domain(t(), Strong.t()) :: Keyword.t()
+  def for_domain(%SmtpConfig{} = config, domain) do
     relay =
       case Utils.mx_lookup(domain) do
         [first_record | _rest] ->
