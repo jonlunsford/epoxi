@@ -1,5 +1,5 @@
 defmodule Epoxi.QueueTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias Epoxi.{Email, Context, Queue}
 
