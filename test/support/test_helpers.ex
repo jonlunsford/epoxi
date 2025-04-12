@@ -49,10 +49,15 @@ defmodule Epoxi.Test.Helpers do
     %Epoxi.Context{config: config}
   end
 
-  def generate_emails(batch_size) do
+  def generate_emails(batch_size, build_fn \\ nil) do
     1..batch_size
     |> Enum.map(fn i ->
-      build_email(%{to: ["test#{i}@test.com"]})
+      if is_function(build_fn) do
+        attrs = build_fn.(i)
+        build_email(attrs)
+      else
+        build_email(%{to: ["test#{i}@test.com"]})
+      end
     end)
   end
 
