@@ -5,7 +5,7 @@ defmodule Epoxi.Queue.Processor do
 
   use Broadway
 
-  alias Epoxi.{SmtpClient, Queue}
+  alias Epoxi.{Queue}
 
   # @max_retries 3
   # 5min, 30min, 2hr
@@ -26,7 +26,7 @@ defmodule Epoxi.Queue.Processor do
         default: [concurrency: 2]
       ],
       batchers: [
-        default: [batch_size: 10, batch_timeout: 1000, concurrency: 5],
+        domain: [batch_size: 50, batch_timeout: 5000, concurrency: 10],
         retry: [batch_size: 10, batch_timeout: 1000, concurrency: 2],
         failed: [batch_size: 10, batch_timeout: 1000, concurrency: 2]
       ]
@@ -42,22 +42,51 @@ defmodule Epoxi.Queue.Processor do
 
   @impl true
   def handle_message(_processor, %Broadway.Message{data: data} = message, _context) do
-    # Try to send the email
-    result = SmtpClient.send_blocking(data.email, data.context)
+    domain = Epoxi.Parsing.get_hostname(data.email.to)
+    message = Broadway.Message.put_batch_key(message, domain)
 
-    case result do
-      {:ok, receipt} ->
-        Broadway.Message.update_data(
-          message,
-          &Queue.Message.mark_delivered(&1, receipt)
-        )
+    case data.status do
+      :pending ->
+        message
+        |> Broadway.Message.put_batcher(:domain)
 
-      {:error, reason} ->
-        Broadway.Message.update_data(
-          message,
-          &Queue.Message.mark_failed(&1, reason)
-        )
+      :retrying ->
+        if Queue.Message.time_to_retry?(data) do
+          message
+          |> Broadway.Message.put_batcher(:domain)
+        else
+          message
+          |> Broadway.Message.put_batcher(:retry)
+        end
+
+      :failed ->
+        message
+        |> Broadway.Message.put_batcher(:failed)
     end
+
+    # Try to send the email
+    # result = SmtpClient.send_blocking(data.email, data.context)
+    #
+    # case result do
+    #   {:ok, receipt} ->
+    #     Broadway.Message.update_data(
+    #       message,
+    #       &Queue.Message.mark_delivered(&1, receipt)
+    #     )
+    #
+    #   {:error, reason} ->
+    #     Broadway.Message.update_data(
+    #       message,
+    #       &Queue.Message.mark_failed(&1, reason)
+    #     )
+    # end
+  end
+
+  @impl true
+  def handle_batch(:domain, messages, _batch_info, _context) do
+    # domain = batch_info.batch_key
+    # smtp_config = Epoxi.SmtpConfig.for_domain(domain)
+    messages
   end
 
   @impl true
