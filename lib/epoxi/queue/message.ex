@@ -4,25 +4,15 @@ defmodule Epoxi.Queue.Message do
   """
 
   defstruct [
-    # Unique ID for the message
     :id,
-    # The Email struct
     :email,
-    # The Context struct
     :context,
-    # When the message was inserted into the queue
     :inserted_at,
-    # When the message was last updated
     :updated_at,
-    # Error information if any
-    :error,
-    # Response from the SMTP server
+    :errors,
     :delivery_response,
-    # When to retry the message next
     :next_retry_at,
-    # Status: pending, processing, delivered, retrying, failed
     status: :pending,
-    # Number of retry attempts
     retry_count: 0
   ]
 
@@ -35,7 +25,7 @@ defmodule Epoxi.Queue.Message do
           updated_at: DateTime.t(),
           status: atom(),
           retry_count: non_neg_integer(),
-          error: term(),
+          errors: List.t(),
           next_retry_at: DateTime.t() | nil
         }
 
@@ -61,10 +51,30 @@ defmodule Epoxi.Queue.Message do
   def mark_failed(message, error) do
     %{
       message
-      | error: error,
+      | errors: [error | message.errors],
         status: :failed,
         updated_at: DateTime.utc_now()
     }
+  end
+
+  def mark_retrying(message, next_retry_at) do
+    %{
+      message
+      | status: :retrying,
+        next_retry_at: next_retry_at,
+        updated_at: DateTime.utc_now(),
+        retry_count: message.retry_count + 1
+    }
+  end
+
+  def time_to_retry?(message) do
+    case message.next_retry_at do
+      nil ->
+        true
+
+      next_retry_at ->
+        DateTime.compare(DateTime.utc_now(), next_retry_at) == :gt
+    end
   end
 
   defp generate_id do
