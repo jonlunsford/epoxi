@@ -16,6 +16,7 @@ defmodule Epoxi.Email do
             html: "",
             text: "",
             delivery: nil,
+            log: [],
             content_type: nil,
             headers: %{}
 
@@ -31,8 +32,14 @@ defmodule Epoxi.Email do
           html: String.t(),
           text: String.t(),
           delivery: DateTime.t(),
+          log: [log_entry()],
           content_type: String.t(),
           headers: Map.t()
+        }
+
+  @type log_entry :: %{
+          :timestamp => DateTime.t(),
+          :message => term()
         }
 
   def put_content_type(%Email{html: h, text: ""} = email) when is_bitstring(h) do
@@ -50,5 +57,14 @@ defmodule Epoxi.Email do
 
   def put_content_type(email) do
     %{email | content_type: "multipart/alternative"}
+  end
+
+  def put_log_entry(%Email{} = email, entry) do
+    entry = %{
+      timestamp: DateTime.utc_now(),
+      message: entry
+    }
+
+    %{email | log: [entry | email.log]}
   end
 end
