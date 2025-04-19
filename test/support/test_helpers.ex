@@ -56,7 +56,7 @@ defmodule Epoxi.Test.Helpers do
         attrs = build_fn.(i)
         build_email(attrs)
       else
-        build_email(%{to: ["test#{i}@test.com"]})
+        build_email(%{to: ["test#{i}@localhost"]})
       end
     end)
   end
