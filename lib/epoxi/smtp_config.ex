@@ -11,7 +11,7 @@ defmodule Epoxi.SmtpConfig do
             tls: false,
             max_batch_size: 100,
             no_mx_lookups: true,
-            on_transaction_error: :reset,
+            on_transaction_error: :quit,
             username: "",
             retries: 1,
             protocol: :smtp,
@@ -58,5 +58,18 @@ defmodule Epoxi.SmtpConfig do
     |> Map.put(:relay, relay)
     |> Map.put(:hostname, domain)
     |> Utils.map_to_list()
+  end
+
+  @spec open_socket(t(), domain :: String.t()) :: {:ok, term()} | {:error, term()}
+  def open_socket(%SmtpConfig{} = config, domain) do
+    config = for_domain(config, domain)
+
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        {:ok, socket}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end
