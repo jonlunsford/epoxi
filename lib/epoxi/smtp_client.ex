@@ -44,6 +44,33 @@ defmodule Epoxi.SmtpClient do
     :ok
   end
 
+  @spec send_over_socket(Email.t(), :gen_smtp_client.socket()) ::
+          {:ok, Email.t()} | {:error, Email.t()}
+  def send_over_socket(email, socket) do
+    try do
+      message = Render.encode(email)
+
+      response =
+        :gen_smtp_client.deliver(
+          socket,
+          {email.from, email.to, message}
+        )
+
+      case response do
+        {:ok, receipt} ->
+          Email.handle_delivery(email, receipt)
+
+        {:error, reason} ->
+          Email.handle_failure(email, reason)
+      end
+    catch
+      reason ->
+        :gen_smtp_client.close(socket)
+        email = Email.handle_failure(email, reason)
+        {:error, email}
+    end
+  end
+
   @doc """
   Delivers email over a persistent socket connection, this can be used when
   PIPELINING on the receiving server is available.

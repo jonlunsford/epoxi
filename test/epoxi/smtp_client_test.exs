@@ -3,7 +3,7 @@ defmodule Epoxi.SmtpClientTest do
   use ExUnit.Case, async: true
 
   alias Epoxi.Test.Helpers
-  alias Epoxi.SmtpClient
+  alias Epoxi.{SmtpClient, SmtpConfig}
 
   test "send_blocking/3 returns success" do
     [context, email, _message] = Helpers.build_send_args()
@@ -11,19 +11,19 @@ defmodule Epoxi.SmtpClientTest do
     assert {:ok, "1\r\n"} = SmtpClient.send_blocking(email, context)
   end
 
-  test "send/3 returns success" do
+  test "send_asyn/3 returns success" do
     [context, email, _message] = Helpers.build_send_args()
 
     assert :ok = SmtpClient.send_async(email, context, fn _response -> nil end)
   end
 
-  test "deliver/3 returns success" do
+  test "send_bulk/3 returns success" do
     [context, email, _message] = Helpers.build_send_args()
 
     assert {:ok, _response} = SmtpClient.send_bulk([email], context, "test.com")
   end
 
-  test "deliver/3 handles many sends with the same socket" do
+  test "send_bulk/3 handles many sends with the same socket" do
     [context, _email, _message] = Helpers.build_send_args()
 
     emails = Helpers.generate_emails(10)
@@ -31,7 +31,7 @@ defmodule Epoxi.SmtpClientTest do
     assert {:ok, _response} = SmtpClient.send_bulk(emails, context, "test.com")
   end
 
-  test "deliver/3 handles many errors with the same socket" do
+  test "send_bulk/3 handles many errors with the same socket" do
     [context, _email, _message] = Helpers.build_send_args()
 
     emails =
@@ -49,13 +49,37 @@ defmodule Epoxi.SmtpClientTest do
     assert length(success) == 5
   end
 
-  describe "send_bulk/2" do
-    test "collects successful responses" do
-      [context, _email, _message] = Helpers.build_send_args()
+  test "send_over_socket/2 sends all emails over the same socket" do
+    [email] = Helpers.generate_emails(1)
 
-      emails = Helpers.generate_emails(10)
+    {:ok, socket} =
+      SmtpConfig.open_socket(
+        %Epoxi.SmtpConfig{
+          port: 2525,
+          relay: "localhost"
+        },
+        "localhost"
+      )
 
-      assert {:ok, _response} = SmtpClient.send_bulk(emails, context, "test.com")
-    end
+    email = SmtpClient.send_over_socket(email, socket)
+
+    assert email.status == :delivered
+  end
+
+  test "send_over_socket/2 handles errors" do
+    [email] = Helpers.generate_emails(1, fn _ -> %{to: ["test+503@localhost.com"]} end)
+
+    {:ok, socket} =
+      SmtpConfig.open_socket(
+        %Epoxi.SmtpConfig{
+          port: 2525,
+          relay: "localhost"
+        },
+        "localhost"
+      )
+
+    email = SmtpClient.send_over_socket(email, socket)
+
+    assert email.status == :failed
   end
 end
