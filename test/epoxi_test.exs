@@ -1,13 +1,7 @@
 defmodule EpoxiTest do
   use ExUnit.Case
-  alias Epoxi.{Email, Context}
+  alias Epoxi.Email
   doctest Epoxi
-
-  setup do
-    context = Context.new()
-
-    {:ok, %{context: context}}
-  end
 
   test "send/2 sends an email" do
     assert {:ok, _receipt} =
