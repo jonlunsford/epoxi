@@ -8,10 +8,12 @@ defmodule Epoxi.Render do
   alias Epoxi.Parsing
 
   def encode(%Email{} = email, compiler \\ Epoxi.EExCompiler) do
+    dkim_opts = dkim_for(email)
+
     email
     |> compiler.compile()
     |> render()
-    |> :mimemail.encode([])
+    |> :mimemail.encode(dkim_opts)
   end
 
   def render(%Email{} = email) do
@@ -112,5 +114,18 @@ defmodule Epoxi.Render do
     addresses
     |> Parsing.normalize_addresses()
     |> Enum.join(", ")
+  end
+
+  def dkim_for(%Email{from: from}) do
+    # TODO: Make pkeys configurable per from domain.
+    case File.read(:code.priv_dir(:epoxi) ++ "/private-key.pem") do
+      {:ok, private_key} ->
+        domain = Parsing.get_hostname(from)
+
+        [s: "dkim1", d: domain, private_key: private_key]
+
+      {:error, _reason} ->
+        []
+    end
   end
 end
