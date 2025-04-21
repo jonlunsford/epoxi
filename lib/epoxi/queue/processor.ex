@@ -5,7 +5,7 @@ defmodule Epoxi.Queue.Processor do
   require Logger
 
   use Broadway
-  alias Epoxi.{SmtpClient, Context, Parsing, Email}
+  alias Epoxi.{SmtpClient, Parsing, Email}
 
   # @max_retries 3
   # 5min, 30min, 2hr
@@ -85,9 +85,30 @@ defmodule Epoxi.Queue.Processor do
   end
 
   defp deliver_batch(messages, batch_info) do
+    domain = batch_info.batch_key
     emails = Enum.map(messages, & &1.data)
-    context = Context.new()
-    SmtpClient.send_bulk(emails, context, batch_info.batch_key)
-    messages
+
+    with {:ok, socket} <- SmtpClient.connect(relay: domain),
+         {:ok, results} <- SmtpClient.send_bulk(emails, socket),
+         :ok <- SmtpClient.disconnect(socket) do
+      messages
+      |> Enum.zip(results)
+      |> Enum.map(&handle_delivery/1)
+    else
+      {:error, reason} ->
+        Logger.error("Failed to process batch for domain #{domain}: #{inspect(reason)}")
+        Enum.map(messages, &Broadway.Message.failed(&1, reason))
+    end
+  end
+
+  defp handle_delivery({message, %Email{status: :delivered} = email}) do
+    message
+    |> Broadway.Message.put_data(email)
+  end
+
+  defp handle_delivery({message, %Email{status: status} = email}) do
+    message
+    |> Broadway.Message.put_data(email)
+    |> Broadway.Message.failed(status)
   end
 end
