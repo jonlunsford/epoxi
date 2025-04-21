@@ -5,7 +5,7 @@ defmodule Epoxi.Queue.Processor do
   require Logger
 
   use Broadway
-  alias Epoxi.{SmtpConfig, SmtpClient, Parsing, Email}
+  alias Epoxi.{SmtpClient, Context, Parsing, Email}
 
   # @max_retries 3
   # 5min, 30min, 2hr
@@ -85,24 +85,9 @@ defmodule Epoxi.Queue.Processor do
   end
 
   defp deliver_batch(messages, batch_info) do
-    {:ok, socket} =
-      SmtpConfig.open_socket(
-        %SmtpConfig{port: 2525, relay: "localhost"},
-        batch_info.batch_key
-      )
-
-    Enum.map(messages, fn message ->
-      case SmtpClient.deliver_over_socket(message.data, socket) do
-        {:ok, email} ->
-          Broadway.Message.put_data(message, email)
-
-        {:error, email} ->
-          dbg(email)
-
-          message
-          |> Broadway.Message.put_data(email)
-          |> Broadway.Message.failed(:pending)
-      end
-    end)
+    emails = Enum.map(messages, & &1.data)
+    context = Context.new()
+    SmtpClient.send_bulk(emails, context, batch_info.batch_key)
+    messages
   end
 end

@@ -138,13 +138,12 @@ defmodule Epoxi.Email do
   def time_to_retry?(%Email{status: status}) when status in [:failed, :pending], do: false
 
   def time_to_retry?(%Email{status: :retrying} = email) do
-    true
-    # case email.next_retry_at do
-    #   nil ->
-    #     true
-    #
-    #   next_retry_at ->
-    #     DateTime.compare(DateTime.utc_now(), next_retry_at) == :gt
-    # end
+    case email.next_retry_at do
+      nil ->
+        true
+
+      next_retry_at ->
+        DateTime.compare(DateTime.utc_now(), next_retry_at) == :gt
+    end
   end
 end

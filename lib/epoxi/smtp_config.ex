@@ -9,11 +9,11 @@ defmodule Epoxi.SmtpConfig do
             ssl: false,
             auth: :never,
             tls: false,
-            max_batch_size: 100,
+            max_batch_size: 10,
             no_mx_lookups: true,
-            on_transaction_error: :quit,
+            on_transaction_error: :reset,
             username: "",
-            retries: 1,
+            retries: 3,
             protocol: :smtp,
             password: ""
 
