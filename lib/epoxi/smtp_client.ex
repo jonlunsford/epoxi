@@ -4,17 +4,21 @@ defmodule Epoxi.SmtpClient do
   """
   require Logger
 
-  alias Epoxi.{Email, Context, Render, SmtpConfig}
+  alias Epoxi.{Email, Render, SmtpConfig}
 
   @doc """
   Sends an email and blocks until a response is received. Returns an error tuple
   or a binary that is the send receipt returned from the receiving server
   """
-  @spec send_blocking(Email.t(), Context.t()) :: {:ok, binary()} | {:error, term()}
-  def send_blocking(%Email{} = email, %Context{} = context) do
+  @spec send_blocking(Email.t(), opts :: Keyword.t()) :: {:ok, binary()} | {:error, term()}
+  def send_blocking(%Email{} = email, opts \\ []) do
     email = Email.put_content_type(email)
-    message = Render.encode(email, context.compiler)
-    config = SmtpConfig.for_email(context.config, email)
+    message = Render.encode(email)
+
+    config =
+      opts
+      |> SmtpConfig.new()
+      |> SmtpConfig.to_keyword_list()
 
     case :gen_smtp_client.send_blocking(
            {email.from, email.to, message},
@@ -29,11 +33,15 @@ defmodule Epoxi.SmtpClient do
   @doc """
   Send a non-blocking email via a spawned_linked process
   """
-  @spec send_async(Email.t(), Context.t(), callback :: function) :: :ok
-  def send_async(%Email{} = email, %Context{} = context, callback) do
+  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function) :: :ok
+  def send_async(%Email{} = email, opts \\ [], callback \\ nil) do
     email = Email.put_content_type(email)
     message = Render.encode(email)
-    config = SmtpConfig.for_email(context.config, email)
+
+    config =
+      opts
+      |> SmtpConfig.new()
+      |> SmtpConfig.to_keyword_list()
 
     :gen_smtp_client.send(
       {email.from, email.to, message},
@@ -44,35 +52,68 @@ defmodule Epoxi.SmtpClient do
     :ok
   end
 
+  def connect(opts \\ []) do
+    config =
+      opts
+      |> SmtpConfig.new()
+      |> SmtpConfig.to_keyword_list()
+
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        {:ok, socket}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def disconnect(socket) do
+    :gen_smtp_client.close(socket)
+  end
+
+  @spec send_over_socket(Email.t(), :gen_smtp_client.socket()) ::
+          {:ok, Email.t()} | {:error, Email.t()}
+  def send_over_socket(email, socket) do
+    try do
+      message = Render.encode(email)
+
+      response =
+        :gen_smtp_client.deliver(
+          socket,
+          {email.from, email.to, message}
+        )
+
+      case response do
+        {:ok, receipt} ->
+          Email.handle_delivery(email, receipt)
+
+        {:error, reason} ->
+          Email.handle_failure(email, reason)
+      end
+    catch
+      reason ->
+        :gen_smtp_client.close(socket)
+        email = Email.handle_failure(email, reason)
+        {:error, email}
+    end
+  end
+
   @doc """
   Delivers email over a persistent socket connection, this can be used when
   PIPELINING on the receiving server is available.
   """
-  @spec send_bulk([Email.t()], :gen_smtp_client.socket(), domain :: String.t()) ::
+  @spec send_bulk([Email.t()], :gen_smtp_client.socket(), acc :: List.t()) ::
           {:ok, [Email.at()]} | {:error, term(), [Email.t()]}
-  def send_bulk(emails, context, domain \\ "") do
-    config = SmtpConfig.for_domain(context.config, domain)
-
-    batch_result = %{
-      success: [],
-      failure: []
-    }
-
-    case(:gen_smtp_client.open(config)) do
-      {:ok, socket} ->
-        deliver(emails, socket, batch_result)
-
-      {:error, type, reason} ->
-        {:error, type, reason}
-    end
+  def send_bulk(emails, socket, acc \\ []) do
+    deliver(emails, socket, acc)
   end
 
-  defp deliver([], socket, batch_result) do
+  defp deliver([], socket, acc) do
     :gen_smtp_client.close(socket)
-    {:ok, batch_result}
+    {:ok, acc}
   end
 
-  defp deliver([email | rest], socket, batch_result) do
+  defp deliver([email | rest], socket, acc) do
     message = Render.encode(email)
 
     response =
@@ -83,22 +124,16 @@ defmodule Epoxi.SmtpClient do
 
     case response do
       {:ok, receipt} ->
-        email = Email.put_log_entry(email, receipt)
+        email = Email.handle_delivery(email, receipt)
+        acc = [email | acc]
 
-        deliver(
-          rest,
-          socket,
-          %{batch_result | success: [email | batch_result.success]}
-        )
+        deliver(rest, socket, acc)
 
       {:error, reason} ->
-        email = Email.put_log_entry(email, reason)
+        email = Email.handle_failure(email, reason)
+        acc = [email | acc]
 
-        deliver(
-          rest,
-          socket,
-          %{batch_result | failure: [email | batch_result.failure]}
-        )
+        deliver(rest, socket, acc)
     end
   end
 end

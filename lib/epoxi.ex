@@ -8,7 +8,7 @@ defmodule Epoxi do
   designed for high-volume, fault-tolerant email delivery.
   """
 
-  alias Epoxi.{Email, Context, SmtpClient}
+  alias Epoxi.{Email, SmtpClient}
 
   @doc """
   Sends an email synchronously and returns the result.
@@ -25,11 +25,9 @@ defmodule Epoxi do
       {:ok, receipt}
 
   """
-  @spec send(Email.t(), Context.t() | nil) :: {:ok, binary()} | {:error, term()}
-  def send(%Email{} = email, context \\ nil) do
-    context = context || get_default_context()
-
-    SmtpClient.send_blocking(email, context)
+  @spec send(Email.t(), opts :: Keyword.t()) :: {:ok, binary()} | {:error, term()}
+  def send(%Email{} = email, opts \\ []) do
+    SmtpClient.send_blocking(email, opts)
   end
 
   @doc """
@@ -47,11 +45,9 @@ defmodule Epoxi do
       ok
 
   """
-  @spec send_async(Email.t(), Context.t() | nil, (term() -> any()) | nil) :: :ok
-  def send_async(%Email{} = email, context \\ nil, callback \\ &default_callback/1) do
-    context = context || get_default_context()
-
-    SmtpClient.send_async(email, context, callback)
+  @spec send_async(Email.t(), opts :: Keyword.t(), (term() -> any()) | nil) :: :ok
+  def send_async(%Email{} = email, opts \\ [], callback \\ &default_callback/1) do
+    SmtpClient.send_async(email, opts, callback)
   end
 
   @doc """
@@ -64,17 +60,16 @@ defmodule Epoxi do
       {:ok, :all_queued}
 
   """
-  @spec send_bulk([Email.t()], Context.t() | nil) :: {:ok, :all_queued} | {:error, term()}
-  def send_bulk(emails, context \\ nil) when is_list(emails) do
-    context = context || get_default_context()
+  @spec send_bulk([Email.t()], Keyword.t()) :: {:ok, [Email.t()]} | {:error, term()}
+  def send_bulk(emails, opts \\ []) when is_list(emails) do
+    case SmtpClient.connect(opts) do
+      {:ok, socket} ->
+        SmtpClient.send_bulk(emails, socket)
 
-    SmtpClient.send_bulk(emails, context)
-  end
-
-  # Private functions
-
-  defp get_default_context do
-    Epoxi.Context.new()
+      {:error, reason} ->
+        Logger.error("Failed to connect: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   defp default_callback({:ok, receipt}) do

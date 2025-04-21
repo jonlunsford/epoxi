@@ -9,7 +9,7 @@ defmodule EpoxiTest do
     {:ok, %{context: context}}
   end
 
-  test "send/2 sends an email", %{context: context} do
+  test "send/2 sends an email" do
     assert {:ok, _receipt} =
              Epoxi.send(
                %Email{
@@ -19,11 +19,12 @@ defmodule EpoxiTest do
                  html: "<p>This is a test email</p>",
                  text: "This is a test email"
                },
-               context
+               port: 2525,
+               relay: "localhost"
              )
   end
 
-  test "send_async/2 sends an email", %{context: context} do
+  test "send_async/2 sends an email" do
     callback = fn response ->
       assert response == :ok
     end
@@ -36,12 +37,15 @@ defmodule EpoxiTest do
         html: "<p>This is a test email</p>",
         text: "This is a test email"
       },
-      context,
+      [
+        port: 2525,
+        relay: "localhost"
+      ],
       callback
     )
   end
 
-  test "send_bulk/2 sends many emails", %{context: context} do
+  test "send_bulk/2 sends many emails" do
     email_a = %Email{
       from: "sender@example.com",
       to: ["recipient_a@localhost.com"],
@@ -58,6 +62,6 @@ defmodule EpoxiTest do
       text: "This is a test email"
     }
 
-    assert {:ok, _response} = Epoxi.send_bulk([email_a, email_b], context)
+    assert {:ok, _response} = Epoxi.send_bulk([email_a, email_b], port: 2525, relay: "localhost")
   end
 end

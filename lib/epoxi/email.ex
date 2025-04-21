@@ -59,9 +59,6 @@ defmodule Epoxi.Email do
         %Email{retry_count: @max_retries} = email,
         {:temporary_failure, _reason} = failure
       ) do
-    dbg("Max retries reached")
-    dbg(email)
-
     email
     |> put_log_entry(failure)
     |> put_log_entry("Max retries reached")

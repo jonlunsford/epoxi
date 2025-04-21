@@ -12,7 +12,7 @@ defmodule Epoxi.Application do
       {OffBroadwayMemory.Buffer, name: :inbox},
 
       # Processor components
-      {Epoxi.Queue.Processor, [concurrency: 10]}
+      {Epoxi.Queue.Processor, [concurrency: 3]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
