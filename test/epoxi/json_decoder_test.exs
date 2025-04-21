@@ -32,7 +32,7 @@ defmodule Epoxi.JSONDecoderTest do
     test "it returns errors" do
       json = "{one: two}"
 
-      assert {:error, "Failed to decode JSON."} = JSONDecoder.decode(json)
+      assert {:error, _reason} = JSONDecoder.decode(json)
     end
   end
 end

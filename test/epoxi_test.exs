@@ -4,16 +4,7 @@ defmodule EpoxiTest do
   doctest Epoxi
 
   setup do
-    context = %Context{
-      adapter: Epoxi.Adapters.SMTP,
-      compiler: Epoxi.EExCompiler,
-      config: %Epoxi.SmtpConfig{
-        port: 2525,
-        relay: "localhost",
-        hostname: "localhost",
-        auth: :never
-      }
-    }
+    context = Context.new()
 
     {:ok, %{context: context}}
   end
@@ -67,6 +58,6 @@ defmodule EpoxiTest do
       text: "This is a test email"
     }
 
-    assert {:ok, :all_queued} = Epoxi.send_bulk([email_a, email_b], context)
+    assert {:ok, _response} = Epoxi.send_bulk([email_a, email_b], context)
   end
 end

@@ -3,45 +3,6 @@ defmodule Epoxi.Utils do
   Utilities to help with general SMTP interaction
   """
 
-  @doc "guesses the current hosts FQDN"
-  def guess_FQDN() do
-    {:ok, hostname} = :inet.gethostname()
-    {:ok, hostent} = :inet.gethostbyname(hostname)
-    {:hostent, fqdn, _aliases, :inet, _length, _ip_addresses} = hostent
-    fqdn
-  end
-
-  @doc "Validates required option is present"
-  def validate_required_option(options, option) do
-    case Map.fetch(options, option) do
-      {:ok, _value} ->
-        options
-
-      :error ->
-        Map.update(
-          options,
-          :errors,
-          ["#{option} is required"],
-          &(&1 ++ ["#{option} is required"])
-        )
-    end
-  end
-
-  @doc "Validates dependent options if the required option and value are present"
-  def validate_dependent_options(options, {{key, value}, deps} = _params) do
-    case Map.fetch(options, key) do
-      {:ok, ^value} ->
-        deps
-        |> Enum.reduce(fn dep, _opt -> validate_required_option(options, dep) end)
-
-      {:ok, _result} ->
-        options
-
-      :error ->
-        options
-    end
-  end
-
   @doc """
   Accepts a domain name as a string and a lookup_handler function
   Loads name servers from the OS if none are currently loaded

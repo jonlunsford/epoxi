@@ -9,11 +9,11 @@ defmodule Epoxi.SmtpConfig do
             ssl: false,
             auth: :never,
             tls: false,
-            max_batch_size: 100,
+            max_batch_size: 10,
             no_mx_lookups: true,
             on_transaction_error: :reset,
             username: "",
-            retries: 1,
+            retries: 3,
             protocol: :smtp,
             password: ""
 
@@ -35,14 +35,14 @@ defmodule Epoxi.SmtpConfig do
 
   alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
 
-  @spec for_email(Email.t(), t()) :: Keyword.t()
-  def for_email(%Email{} = email, %SmtpConfig{} = config) do
-    Parsing.get_hostname(email.to)
-    |> for_domain(config)
+  @spec for_email(t(), Email.t()) :: Keyword.t()
+  def for_email(%SmtpConfig{} = config, %Email{} = email) do
+    hostname = Parsing.get_hostname(email.to)
+    for_domain(config, hostname)
   end
 
-  @spec for_domain(String.t(), t()) :: Keyword.t()
-  def for_domain(domain, %SmtpConfig{} = config) do
+  @spec for_domain(t(), Strong.t()) :: Keyword.t()
+  def for_domain(%SmtpConfig{} = config, domain) do
     relay =
       case Utils.mx_lookup(domain) do
         [first_record | _rest] ->
@@ -58,5 +58,18 @@ defmodule Epoxi.SmtpConfig do
     |> Map.put(:relay, relay)
     |> Map.put(:hostname, domain)
     |> Utils.map_to_list()
+  end
+
+  @spec open_socket(t(), domain :: String.t()) :: {:ok, term()} | {:error, term()}
+  def open_socket(%SmtpConfig{} = config, domain) do
+    config = for_domain(config, domain)
+
+    case :gen_smtp_client.open(config) do
+      {:ok, socket} ->
+        {:ok, socket}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end

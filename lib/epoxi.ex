@@ -22,18 +22,14 @@ defmodule Epoxi do
         html: "<p>This is a test email</p>",
         text: "This is a test email"
       })
-      :ok
+      {:ok, receipt}
 
   """
   @spec send(Email.t(), Context.t() | nil) :: {:ok, binary()} | {:error, term()}
   def send(%Email{} = email, context \\ nil) do
     context = context || get_default_context()
 
-    case SmtpClient.send_blocking(email, context) do
-      {:ok, receipt} -> {:ok, receipt}
-      receipt when is_binary(receipt) -> {:ok, receipt}
-      error -> error
-    end
+    SmtpClient.send_blocking(email, context)
   end
 
   @doc """
@@ -78,19 +74,7 @@ defmodule Epoxi do
   # Private functions
 
   defp get_default_context do
-    context_module = Application.get_env(:epoxi, :context_module, Epoxi.Context)
-
-    case Code.ensure_loaded(context_module) do
-      {:module, module} ->
-        if function_exported?(module, :new, 0) do
-          module.new()
-        else
-          %Context{}
-        end
-
-      _ ->
-        %Context{}
-    end
+    Epoxi.Context.new()
   end
 
   defp default_callback({:ok, receipt}) do

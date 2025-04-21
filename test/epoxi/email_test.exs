@@ -37,4 +37,12 @@ defmodule Epoxi.EmailTest do
       assert %{content_type: "text/html"} = email
     end
   end
+
+  describe "time_to_retry/1" do
+    test "returns false when max retries have been reaached" do
+      email = %Email{retry_count: 5}
+
+      refute Email.time_to_retry?(email)
+    end
+  end
 end

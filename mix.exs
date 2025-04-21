@@ -27,7 +27,7 @@ defmodule Epoxi.MixProject do
       {:gen_stage, "~> 1.1"},
       {:gen_smtp, "~> 1.2"},
       {:broadway, "~> 1.2"},
-      {:jason, "~> 1.4"}
+      {:off_broadway_memory, "~> 1.1"}
 
       # {:telemetry, "~> 1.0"},
       # {:telemetry_metrics, "~> 0.6.1"},

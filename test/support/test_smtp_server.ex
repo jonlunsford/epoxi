@@ -1,5 +1,10 @@
 defmodule Epoxi.TestSmtpServer do
+  @moduledoc """
+  A simple SMTP server for testing purposes.
+  """
   @behaviour :gen_smtp_server_session
+
+  alias Epoxi.TestSmtpErrorCodes
 
   def start(port) do
     :gen_smtp_server.start(
@@ -40,8 +45,23 @@ defmodule Epoxi.TestSmtpServer do
   end
 
   @impl true
-  def handle_RCPT(_to, state) do
-    {:ok, state}
+  def handle_RCPT(to, state) do
+    # Check if email contains a test code flag (test+CODE@domain.com)
+    case Regex.run(~r/test\+([a-z0-9_]+)@/, to) do
+      [_, code] ->
+        case TestSmtpErrorCodes.get(code) do
+          %{message: error_message} ->
+            {:error, error_message, state}
+
+          nil ->
+            # Default: accept recipient if code not found
+            {:ok, state}
+        end
+
+      # Default: accept recipient if no code pattern found
+      nil ->
+        {:ok, state}
+    end
   end
 
   @impl true
