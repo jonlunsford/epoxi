@@ -117,6 +117,7 @@ defmodule Epoxi.Render do
   end
 
   def dkim_for(%Email{from: from}) do
+    # TODO: Make pkeys configurable per from domain.
     case File.read(:code.priv_dir(:epoxi) ++ "/private-key.pem") do
       {:ok, private_key} ->
         domain = Parsing.get_hostname(from)
