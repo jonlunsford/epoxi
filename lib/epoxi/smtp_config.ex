@@ -35,6 +35,23 @@ defmodule Epoxi.SmtpConfig do
 
   alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
 
+  @spec new(opts :: Keyword.t()) :: SmtpConfig.t()
+  def new(opts \\ []) do
+    opts =
+      opts
+      |> Keyword.put(:relay, Keyword.get(opts, :relay, "localhost"))
+      |> Keyword.put(:hostname, Keyword.get(opts, :hostname, "localhost"))
+      |> Keyword.put(:port, Keyword.get(opts, :port, 2525))
+
+    struct(SmtpConfig, opts)
+  end
+
+  def to_keyword_list(%SmtpConfig{} = smtp_config) do
+    smtp_config
+    |> Map.from_struct()
+    |> Utils.map_to_list()
+  end
+
   @spec for_email(t(), Email.t()) :: Keyword.t()
   def for_email(%SmtpConfig{} = config, %Email{} = email) do
     hostname = Parsing.get_hostname(email.to)
@@ -58,18 +75,5 @@ defmodule Epoxi.SmtpConfig do
     |> Map.put(:relay, relay)
     |> Map.put(:hostname, domain)
     |> Utils.map_to_list()
-  end
-
-  @spec open_socket(t(), domain :: String.t()) :: {:ok, term()} | {:error, term()}
-  def open_socket(%SmtpConfig{} = config, domain) do
-    config = for_domain(config, domain)
-
-    case :gen_smtp_client.open(config) do
-      {:ok, socket} ->
-        {:ok, socket}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
   end
 end
