@@ -1,12 +1,11 @@
 import Config
 
 config :epoxi,
-  smtp_config: %{
-    port: 2525,
-    relay: "localhost",
-    hostname: "localhost",
-    auth: :never
-  },
+  endpoint_options: [
+    plug: Epoxi.Endpoint,
+    scheme: :http,
+    port: 4000
+  ],
   producer_module: OffBroadwayMemory.Producer,
   producer_options: [
     buffer: :inbox,
