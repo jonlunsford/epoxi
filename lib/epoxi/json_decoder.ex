@@ -16,6 +16,12 @@ defmodule Epoxi.JSONDecoder do
     end
   end
 
+  def decode(decoded_json) when is_map(decoded_json) do
+    decoded_json
+    |> Epoxi.Utils.atomize_keys()
+    |> cast_map_to_email_struct()
+  end
+
   defp cast_map_to_email_struct(payload) when is_map(payload) do
     payload[:to]
     |> Enum.map(&format_map_for_email(&1, payload))

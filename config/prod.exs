@@ -1,12 +1,13 @@
 use Mix.Config
 
 config :epoxi,
-  smtp_config: %{
-    port: 2525,
-    relay: "localhost",
-    hostname: "localhost",
-    auth: :never
-  },
+  endpoint_options: [
+    plug: Epoxi.Endpoint,
+    scheme: :https,
+    port: 443,
+    certfile: "",
+    keyfile: ""
+  ],
   producer_module: OffBroadwayMemory.Producer,
   producer_options: [
     buffer: :inbox,

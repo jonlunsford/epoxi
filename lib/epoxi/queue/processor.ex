@@ -7,10 +7,6 @@ defmodule Epoxi.Queue.Processor do
   use Broadway
   alias Epoxi.{SmtpClient, Parsing, Email}
 
-  # @max_retries 3
-  # 5min, 30min, 2hr
-  # @retry_intervals [5 * 60, 30 * 60, 2 * 60 * 60]
-
   def start_link(opts) do
     producer_module = Application.fetch_env!(:epoxi, :producer_module)
     producer_options = Application.get_env(:epoxi, :producer_options, [])
