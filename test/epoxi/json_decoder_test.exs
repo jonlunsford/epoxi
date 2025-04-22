@@ -29,6 +29,15 @@ defmodule Epoxi.JSONDecoderTest do
       assert Enum.count(emails) == 1000
     end
 
+    test "it parsed already decoded maps" do
+      json = Helpers.gen_json_payload(1)
+      decoded = JSON.decode!(json)
+
+      emails = JSONDecoder.decode(decoded)
+
+      assert Enum.count(emails) == 1
+    end
+
     test "it returns errors" do
       json = "{one: two}"
 
