@@ -20,10 +20,9 @@ defmodule Epoxi.Endpoint do
     {status, body} =
       case conn.body_params do
         %{"message" => message} ->
-          Task.async(fn ->
-            emails = Epoxi.JSONDecoder.decode(message)
-            OffBroadwayMemory.Buffer.push(:inbox, emails)
-          end)
+          # TODO: Validate JSON payload
+          emails = Epoxi.JSONDecoder.decode(message)
+          OffBroadwayMemory.Buffer.push(:inbox, emails)
 
           {200, "Message queued"}
 
