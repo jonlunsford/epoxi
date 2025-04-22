@@ -13,10 +13,10 @@ defmodule Epoxi.EndpointTest do
 
   test "POST /messages" do
     json = Helpers.gen_json_payload(1000)
-    conn = conn(:post, "/messages", %{"messages" => json})
+    conn = conn(:post, "/messages", %{"message" => json})
     conn = Epoxi.Endpoint.call(conn, [])
 
     assert conn.status == 200
-    assert conn.resp_body == "Messages queued"
+    assert conn.resp_body == "Message queued"
   end
 end
