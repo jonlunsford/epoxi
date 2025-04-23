@@ -5,6 +5,7 @@ defmodule Epoxi.Endpoint do
 
   plug(Plug.Logger)
   plug(:match)
+  plug(Plug.Telemetry, event_prefix: [:epoxi, :endpoint])
   plug(Plug.Parsers, parsers: [:json], json_decoder: JSON)
   plug(:dispatch)
 
