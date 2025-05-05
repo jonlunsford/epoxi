@@ -6,8 +6,7 @@ config :epoxi,
     scheme: :http,
     port: 4000
   ],
-  producer_module: OffBroadwayMemory.Producer,
+  producer_module: Epoxi.Queue.Producer,
   producer_options: [
-    buffer: :inbox,
-    on_failure: :discard
+    queue: :inbox
   ]

@@ -53,9 +53,11 @@ defmodule Epoxi.Queue.Processor do
 
     re_enqueued =
       Enum.map(not_ready, fn message ->
+        email = Email.handle_failure(message.data, "Trying to re-enqueue")
+
         message
-        |> Broadway.Message.put_data(message.data)
-        |> Broadway.Message.failed(:pending)
+        |> Broadway.Message.put_data(email)
+        |> Broadway.Message.failed(email.status)
       end)
 
     retried ++ re_enqueued
@@ -64,20 +66,8 @@ defmodule Epoxi.Queue.Processor do
   @impl true
   def handle_batch(:failed, messages, _batch_info, _context) do
     Enum.map(messages, fn message ->
-      Broadway.Message.failed(message, :complete_failure)
+      Broadway.Message.failed(message, :dead)
     end)
-  end
-
-  @impl true
-  def handle_failed(messages, _context) do
-    {retry, dead} =
-      Enum.split_with(messages, fn message ->
-        Email.retrying?(message.data)
-      end)
-
-    OffBroadwayMemory.Buffer.push(:inbox, Enum.map(retry, & &1.data))
-
-    retry ++ dead
   end
 
   defp deliver_batch(messages, batch_info) do
@@ -92,8 +82,14 @@ defmodule Epoxi.Queue.Processor do
       |> Enum.map(&handle_delivery/1)
     else
       {:error, reason} ->
-        Logger.error("Failed to process batch for domain #{domain}: #{inspect(reason)}")
-        Enum.map(messages, &Broadway.Message.failed(&1, reason))
+        results =
+          Enum.map(emails, fn email ->
+            Email.handle_failure(email, reason)
+          end)
+
+        messages
+        |> Enum.zip(results)
+        |> Enum.map(&handle_delivery/1)
     end
   end
 

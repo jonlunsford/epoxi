@@ -64,6 +64,9 @@ defmodule Epoxi.SmtpClient do
 
       {:error, reason} ->
         {:error, reason}
+
+      {:error, _permanent_failure, details} ->
+        {:error, details}
     end
   end
 

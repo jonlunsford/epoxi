@@ -25,3 +25,4 @@ epoxi-*.tar
 .env
 
 *.pem
+*.dets

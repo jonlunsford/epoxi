@@ -23,7 +23,7 @@ defmodule Epoxi.Endpoint do
         %{"message" => message} ->
           # TODO: Validate JSON payload
           emails = Epoxi.JSONDecoder.decode(message)
-          OffBroadwayMemory.Buffer.push(:inbox, emails)
+          Epoxi.Queue.enqueue_many(:inbox, emails)
 
           {200, "Message queued"}
 
