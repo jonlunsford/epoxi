@@ -7,7 +7,7 @@ defmodule Epoxi.Application do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
-      {OffBroadwayMemory.Buffer, name: :inbox},
+      {Epoxi.Queue, [name: :inbox]},
       {Epoxi.Queue.Processor, [concurrency: 10]},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
