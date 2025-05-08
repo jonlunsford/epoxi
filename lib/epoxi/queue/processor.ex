@@ -165,7 +165,6 @@ defmodule Epoxi.Queue.Processor do
   end
 
   defp mark_email_as_failed(email, reason) do
-    dbg(email)
     Email.handle_failure(email, reason)
   end
 
