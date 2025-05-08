@@ -3,9 +3,15 @@ defmodule Epoxi.Queue.ProducerTest do
 
   alias Epoxi.Queue.Producer
 
-  test "init/1 raises when queue is not provided" do
-    assert_raise ArgumentError, ~r/required :queue option not found/, fn ->
+  test "init/1 raises when inbox_name is not provided" do
+    assert_raise ArgumentError, ~r/required :inbox_name option not found/, fn ->
       Producer.init([])
+    end
+  end
+
+  test "init/1 raises when dead_letter_name is not provided" do
+    assert_raise ArgumentError, ~r/required :dead_letter_name option not found/, fn ->
+      Producer.init(inbox_name: :foo)
     end
   end
 end
