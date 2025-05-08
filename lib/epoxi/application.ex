@@ -8,7 +8,16 @@ defmodule Epoxi.Application do
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
       {Epoxi.Queue, [name: :inbox]},
-      {Epoxi.Queue.Processor, [concurrency: 10]},
+      {Epoxi.Queue, [name: :dead]},
+      {Epoxi.Queue.Processor,
+       [
+         producer_options: [
+           module:
+             {Application.get_env(:epoxi, :producer_module),
+              Application.get_env(:epoxi, :producer_options)},
+           concurrency: 10
+         ]
+       ]},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
 

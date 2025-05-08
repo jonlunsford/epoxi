@@ -35,6 +35,10 @@ defmodule Epoxi.Telemetry do
       summary("broadway.batch_processor.stop.duration",
         unit: {:native, :millisecond}
       ),
+      # MTA Metrics
+      summary("epoxi.queue.batch_processed.successful"),
+      summary("epoxi.queue.batch_processed.failed"),
+      summary("epoxi.queue.sync.count"),
       # VM Metrics
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),

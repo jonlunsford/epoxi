@@ -9,4 +9,7 @@ config :epoxi,
     port: 4000
   ],
   producer_module: Broadway.DummyProducer,
-  producer_options: []
+  producer_options: [
+    inbox_name: :inbox,
+    dead_letter_name: :dead
+  ]

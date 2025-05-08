@@ -34,6 +34,18 @@ defmodule Epoxi.Queue do
         ]
   @type enqueue_options :: [priority: integer()]
 
+  def child_spec(opts) do
+    id = Keyword.get(opts, :name, __MODULE__)
+
+    %{
+      id: id,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker,
+      restart: :permanent,
+      shutdown: 500
+    }
+  end
+
   @doc """
   Starts a durable queue process.
 
@@ -111,6 +123,15 @@ defmodule Epoxi.Queue do
   def length(name) do
     registered_name = via_tuple(name)
     GenServer.call(registered_name, :length)
+  end
+
+  @doc """
+  Returns dets table info
+  """
+  @spec info(atom()) :: [tuple()]
+  def info(name) do
+    registered_name = via_tuple(name)
+    GenServer.call(registered_name, :info)
   end
 
   @doc """
@@ -221,6 +242,14 @@ defmodule Epoxi.Queue do
   def handle_call(:sync, _from, state) do
     updated_state = do_sync(state)
     {:reply, :ok, updated_state}
+  end
+
+  @impl true
+  def handle_call(:info, _from, state) do
+    dets = :dets.info(state.dets_table)
+    ets = :ets.info(state.ets_table)
+
+    {:reply, %{dets: dets, ets: ets}, state}
   end
 
   @impl true
