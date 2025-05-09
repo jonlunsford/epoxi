@@ -158,25 +158,49 @@ defmodule Epoxi.Node do
   end
 
   defp erpc_call(%Epoxi.Node{name: node_name}, mod, fun, args) do
+    start_time = System.monotonic_time()
+
     case :erpc.call(node_name, mod, fun, args) do
       {:badrpc, reason} ->
         Logger.error("RPC call to #{node_name} failed: #{inspect(reason)}")
+        record_routing_telemetry(self(), node_name, start_time, reason)
         {:error, reason}
 
       result ->
+        record_routing_telemetry(self(), node_name, start_time, result)
         {:ok, result}
     end
   end
 
   defp erpc_cast(%Epoxi.Node{name: node_name}, mod, fun, args) do
+    start_time = System.monotonic_time()
+
     case :erpc.cast(node_name, mod, fun, args) do
       {:badrpc, reason} ->
         Logger.error("RPC call to #{node_name} failed: #{inspect(reason)}")
+        record_routing_telemetry(self(), node_name, start_time, reason)
         {:error, reason}
 
       :ok ->
         {:ok, :message_sent_async}
     end
+  end
+
+  defp record_routing_telemetry(source_node, target_node, start_time, result) do
+    end_time = System.monotonic_time()
+    duration = end_time - start_time
+
+    :telemetry.execute(
+      [:epoxi, :router, :route, :count],
+      %{count: 1},
+      %{source_node: source_node, target_node: target_node, result: result}
+    )
+
+    :telemetry.execute(
+      [:epoxi, :router, :route, :latency],
+      %{duration: duration},
+      %{source_node: source_node, target_node: target_node}
+    )
   end
 
   defp format_interface_addresses(interfaces) do
