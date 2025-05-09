@@ -15,7 +15,6 @@ defmodule Epoxi.Node do
   require Logger
 
   @type node_status :: :up | :down | :unknown
-  @type node_state :: map()
   @type ip_address :: String.t()
 
   @type t :: %__MODULE__{
@@ -38,6 +37,21 @@ defmodule Epoxi.Node do
   """
   def new(attrs \\ []) do
     struct(Epoxi.Node, attrs)
+  end
+
+  @doc """
+  Create an Epoxi.Node struct from a Kernel.Node call
+
+  ## Parameters
+    * `node` - Response from Node.self()
+
+  ## Examples
+      iex> Epoxi.Node.from_node(Node.self())
+      %Epoxi.Node{name: :nonode@nohost, status: :up, ...}
+  """
+  @spec from_node(node()) :: t()
+  def from_node(node) do
+    new(name: node)
   end
 
   @doc """
@@ -115,12 +129,15 @@ defmodule Epoxi.Node do
       iex> Epoxi.Node.state()
       %{emails_queued: 42}
   """
-  @spec state() :: node_state()
-  def state() do
-    # TODO: Create module to return "current stats" per node.
-    %{
-      emails_queued: Epoxi.Queue.length(:inbox)
-    }
+  @spec state(target_node :: t()) :: t()
+  def state(%Epoxi.Node{} = node) do
+    case local?(node) do
+      true ->
+        put_state(node, %{status: :up, last_seen: DateTime.utc_now()})
+
+      false ->
+        erpc_call(node, Epoxi.Node, :state, [node])
+    end
   end
 
   @doc """
@@ -184,6 +201,15 @@ defmodule Epoxi.Node do
       :ok ->
         {:ok, :message_sent_async}
     end
+  end
+
+  defp put_state(%Epoxi.Node{} = node, additional_state) do
+    {:ok, ips} = interfaces(node)
+
+    node
+    |> Map.put(:emails_queued, Epoxi.Queue.length(:inbox))
+    |> Map.put(:ip_addresses, ips)
+    |> Map.merge(additional_state)
   end
 
   defp record_routing_telemetry(source_node, target_node, start_time, result) do

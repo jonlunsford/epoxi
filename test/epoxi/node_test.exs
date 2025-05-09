@@ -1,6 +1,12 @@
 defmodule Epoxi.NodeTest do
   use ExUnit.Case, async: true
 
+  describe "from_node" do
+    test "it returns a struct" do
+      assert %Epoxi.Node{} = Epoxi.Node.from_node(Node.self())
+    end
+  end
+
   describe "route_cast/4" do
     test "routes function call to local node" do
       node = Epoxi.Node.new(name: Node.self())
