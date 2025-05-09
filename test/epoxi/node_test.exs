@@ -1,0 +1,38 @@
+defmodule Epoxi.NodeTest do
+  use ExUnit.Case, async: true
+
+  describe "route_cast/4" do
+    test "routes function call to local node" do
+      node = Epoxi.Node.new(name: Node.self())
+
+      assert Epoxi.Node.route_cast(node, Kernel, :node, []) == node.name
+    end
+
+    # Test for the originally existing functionality
+    @tag :distributed
+    test "routing request across nodes" do
+      # This test requires running with a specific node name:
+      # elixir --sname foo -S mix test
+      node = Epoxi.Node.new(name: :foo@jl)
+      assert Epoxi.Node.route_cast(node, Kernel, :node, []) == :foo@jl
+    end
+  end
+
+  describe "route_call/4" do
+    test "routes function call to local node" do
+      node = Epoxi.Node.new(name: Node.self())
+
+      assert Epoxi.Node.route_call(node, Kernel, :node, []) == node.name
+    end
+  end
+
+  describe "interfaces/0" do
+    test "it returns a list of IPv4 addresses" do
+      node = Epoxi.Node.new(name: Node.self())
+
+      {:ok, ip_addresses} = Epoxi.Node.interfaces(node)
+
+      assert is_list(ip_addresses)
+    end
+  end
+end
