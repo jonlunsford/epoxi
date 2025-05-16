@@ -10,7 +10,14 @@ defmodule Epoxi.Node do
 
   It serves as a key component for maintaining distributed functionality in the Epoxi system.
   """
-  defstruct [:name, :emails_queued, :last_seen, :ip_addresses, status: :unknown]
+  defstruct [
+    :name,
+    :emails_queued,
+    :last_seen,
+    :ip_addresses,
+    ip_pool: :default,
+    status: :unknown
+  ]
 
   require Logger
 
@@ -22,62 +29,33 @@ defmodule Epoxi.Node do
           name: atom(),
           status: node_status(),
           ip_addresses: [ip_address()],
+          ip_pool: atom(),
           last_seen: Calendar.datetime()
         }
 
-  @doc """
-  Creates a new Epoxi.Node struct with the given attributes.
-
-  ## Parameters
-    * `attrs` - A keyword list of attributes to initialize the node with.
-
-  ## Examples
-      iex> Epoxi.Node.new(name: :node1, status: :up)
-      %Epoxi.Node{name: :node1, status: :up, emails_queued: nil, ip_addresses: nil, last_seen: nil}
-  """
   def new(attrs \\ []) do
     struct(Epoxi.Node, attrs)
   end
 
-  @doc """
-  Create an Epoxi.Node struct from a Kernel.Node call
-
-  ## Parameters
-    * `node` - Response from Node.self()
-
-  ## Examples
-      iex> Epoxi.Node.from_node(Node.self())
-      %Epoxi.Node{name: :nonode@nohost, status: :up, ...}
-  """
   @spec from_node(node()) :: t()
   def from_node(node) do
     new(name: node)
+    |> state()
   end
 
-  @doc """
-  Sends an asynchronous (cast) request to the target node.
+  @spec current :: t()
+  def current do
+    Node.self()
+    |> from_node()
+  end
 
-  Determines if the target is the local node or a remote node and routes
-  the function call appropriately. For remote nodes, this uses erpc.cast.
-
-  ## Parameters
-    * `target_node` - The Epoxi.Node struct representing the destination node
-    * `mod` - The module containing the function to call
-    * `fun` - The function to call
-    * `args` - Arguments to pass to the function
-
-  ## Examples
-      iex> target = Epoxi.Node.new(name: :node2)
-      iex> Epoxi.Node.route_cast(target, MyModule, :process_async, [id: 123])
-      {:ok, :message_sent_async}
-  """
   @spec route_cast(
           target_node :: t(),
           mod :: module(),
           fun :: fun(),
           args ::
             Keyword.t()
-        ) :: {:ok, :message_sent_async} | {:error, any()}
+        ) :: {:ok, :message_sent_async} | {:error, any()} | any()
   def route_cast(%Epoxi.Node{} = target_node, mod, fun, args) do
     case local?(target_node) do
       true -> apply(mod, fun, args)
@@ -85,23 +63,6 @@ defmodule Epoxi.Node do
     end
   end
 
-  @doc """
-  Sends a synchronous (call) request to the target node and waits for the response.
-
-  Determines if the target is the local node or a remote node and routes
-  the function call appropriately. For remote nodes, this uses erpc.call.
-
-  ## Parameters
-    * `target_node` - The Epoxi.Node struct representing the destination node
-    * `mod` - The module containing the function to call
-    * `fun` - The function to call
-    * `args` - Arguments to pass to the function
-
-  ## Examples
-      iex> target = Epoxi.Node.new(name: :node2)
-      iex> Epoxi.Node.route_call(target, MyModule, :get_data, [id: 123])
-      {:ok, %{result: "data"}}
-  """
   @spec route_call(
           target_node :: t(),
           mod :: module(),
@@ -116,19 +77,6 @@ defmodule Epoxi.Node do
     end
   end
 
-  @doc """
-  Returns the current state of the local node.
-
-  Collects important metrics about the node's operation, such as the number of
-  emails currently in the queue.
-
-  ## Returns
-    * A map containing node state information
-
-  ## Examples
-      iex> Epoxi.Node.state()
-      %{emails_queued: 42}
-  """
   @spec state(target_node :: t()) :: t()
   def state(%Epoxi.Node{} = node) do
     case local?(node) do
@@ -136,28 +84,11 @@ defmodule Epoxi.Node do
         put_state(node, %{status: :up, last_seen: DateTime.utc_now()})
 
       false ->
-        erpc_call(node, Epoxi.Node, :state, [node])
+        {:ok, result} = erpc_call(node, Epoxi.Node, :state, [node])
+        result
     end
   end
 
-  @doc """
-  Retrieves a list of IP addresses for the network interfaces on the target node.
-
-  Uses route_call to execute the request on the appropriate node, then formats
-  the interface information to return only the IPv4 addresses.
-
-  ## Parameters
-    * `target_node` - The Epoxi.Node struct representing the node to query
-
-  ## Returns
-    * `{:ok, addresses}` - List of IP addresses as strings on success
-    * `{:error, reason}` - Error information if the call fails
-
-  ## Examples
-      iex> node = Epoxi.Node.new(name: :node1)
-      iex> Epoxi.Node.interfaces(node)
-      {:ok, ["192.168.1.100", "127.0.0.1"]}
-  """
   @spec interfaces(targe_node :: t()) :: {:ok, [ip_address()], {:error, term()}}
   def interfaces(%Epoxi.Node{} = target_node) do
     case route_call(target_node, :inet, :getifaddrs, []) do

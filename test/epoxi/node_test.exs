@@ -14,13 +14,11 @@ defmodule Epoxi.NodeTest do
       assert Epoxi.Node.route_cast(node, Kernel, :node, []) == node.name
     end
 
-    # Test for the originally existing functionality
     @tag :distributed
     test "routing request across nodes" do
-      # This test requires running with a specific node name:
-      # elixir --sname foo -S mix test
-      node = Epoxi.Node.new(name: :foo@jl)
-      assert Epoxi.Node.route_cast(node, Kernel, :node, []) == :foo@jl
+      # mix test --include distributed
+      node = Epoxi.Node.new(name: Node.self())
+      assert Epoxi.Node.route_call(node, Kernel, :node, []) == node.name
     end
   end
 
