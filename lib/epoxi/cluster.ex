@@ -11,85 +11,75 @@ defmodule Epoxi.Cluster do
   It serves as a central component for managing distributed node operations in the Epoxi system.
   """
 
-  defstruct node_count: 0, nodes: []
+  alias Epoxi.Cluster
 
+  defstruct node_count: 0, nodes: [], pools: %{default: MapSet.new()}
+
+  @type pool_name :: atom()
   @type t :: %__MODULE__{
           node_count: non_neg_integer(),
-          nodes: [Epoxi.Node.t()]
+          nodes: [Epoxi.Node.t()],
+          pools: %{pool_name() => MapSet.t(Epoxi.Node.t())}
         }
 
-  @doc """
-  Creates a new Epoxi.Cluster struct with the given attributes.
-
-  ## Parameters
-    * `attrs` - A keyword list of attributes to initialize the cluster with.
-
-  ## Examples
-      iex> nodes = [%Epoxi.Node{name: :node1}, %Epoxi.Node{name: :node2}]
-      iex> Epoxi.Cluster.new(nodes: nodes, node_count: 2)
-      %Epoxi.Cluster{nodes: [%Epoxi.Node{name: :node1}, %Epoxi.Node{name: :node2}], node_count: 2}
-  """
-  def new(attrs \\ []) do
-    struct(Epoxi.Cluster, attrs)
+  def init(opts \\ []) do
+    opts
+    |> new()
+    |> get_current_state()
   end
 
-  @doc """
-  Updates and returns the current state of the cluster including all connected nodes.
+  def new(opts \\ []) do
+    struct(Epoxi.Cluster, opts)
+  end
 
-  This function collects state information from all nodes in the cluster, including
-  the local node, and updates the cluster struct with the latest information.
-
-  ## Parameters
-    * `cluster` - The Epoxi.Cluster struct to update
-
-  ## Returns
-    * Updated Epoxi.Cluster struct containing current node states
-
-  ## Examples
-      iex> cluster = Epoxi.Cluster.new()
-      iex> updated_cluster = Epoxi.Cluster.state(cluster)
-      iex> updated_cluster.node_count > 0
-      true
-  """
-  @spec state(cluster :: t()) :: t()
-  def state(%Epoxi.Cluster{} = cluster) do
+  @spec get_current_state(cluster :: t()) :: t()
+  def get_current_state(%Cluster{} = cluster \\ %Cluster{}) do
     nodes =
       connected_nodes()
-      |> Enum.map(&Epoxi.Node.from_node/1)
       |> Enum.map(&Epoxi.Node.state/1)
 
-    %{cluster | nodes: nodes, node_count: length(nodes)}
+    cluster =
+      Enum.reduce(nodes, cluster, fn node, cluster ->
+        add_node_to_pool(cluster, node)
+      end)
+
+    %{cluster | node_count: length(nodes)}
   end
 
-  @doc """
-  Finds a specific node within the cluster by its node name.
+  @spec add_node_to_pool(cluster :: t(), node :: Epoxi.Node.t()) :: t()
+  def add_node_to_pool(%Cluster{pools: pools} = cluster, %Epoxi.Node{ip_pool: ip_pool} = node) do
+    {_old, new_value} =
+      pools
+      |> Map.put_new(ip_pool, MapSet.new())
+      |> Map.get_and_update(ip_pool, fn map_set -> {map_set, MapSet.put(map_set, node)} end)
 
-  ## Parameters
-    * `cluster` - The Epoxi.Cluster struct containing nodes to search
-    * `node` - The name of the node to find (as an Erlang node name)
+    %{cluster | pools: new_value}
+  end
 
-  ## Returns
-    * `{:ok, node}` - The found Epoxi.Node struct
-    * `{:error, :not_found}` - If the node is not found in the cluster
-
-  ## Examples
-      iex> cluster = Epoxi.Cluster.new(nodes: [%Epoxi.Node{name: :node1}])
-      iex> Epoxi.Cluster.find_node(cluster, :node1)
-      {:ok, %Epoxi.Node{name: :node1}}
-
-      iex> cluster = Epoxi.Cluster.new(nodes: [%Epoxi.Node{name: :node1}])
-      iex> Epoxi.Cluster.find_node(cluster, :nonexistent_node)
-      {:error, :not_found}
-  """
-  @spec find_node(cluster :: t(), node :: node()) ::
+  @spec find_node(node_name :: node()) ::
           {:ok, Epoxi.Node.t()}
           | {:error, :not_found}
-  def find_node(%Epoxi.Cluster{nodes: nodes}, node) do
-    nodes
-    |> Enum.find({:error, :not_found}, fn cluster_node -> cluster_node.name == node end)
+  def find_node(node_name) do
+    connected_nodes()
+    |> Enum.find({:error, :not_found}, fn cluster_node ->
+      cluster_node.name == node_name
+    end)
+  end
+
+  @spec find_pool(cluster :: t(), atom()) :: [Epoxi.Node.t()]
+  def find_pool(%Cluster{pools: pools}, pool_name) do
+    pools
+    |> Map.get(pool_name)
+    |> MapSet.to_list()
+  end
+
+  @spec select_node(cluster :: t(), strategy_fn :: fun()) :: [Epoxi.Node.t()]
+  def select_node(%Cluster{nodes: nodes}, strategy_fn \\ fn nodes -> nodes end) do
+    strategy_fn.(nodes)
   end
 
   defp connected_nodes() do
     [Node.self() | Node.list()]
+    |> Enum.map(&Epoxi.Node.from_node/1)
   end
 end
