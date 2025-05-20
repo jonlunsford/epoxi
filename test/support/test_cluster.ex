@@ -22,7 +22,7 @@ defmodule Epoxi.TestCluster do
     peer_opts = %{
       host: to_charlist("127.0.0.1"),
       name: node_name(node_host),
-      arge: inet_loader_args()
+      args: inet_loader_args()
     }
 
     {:ok, _pid, node} = :peer.start(peer_opts)
