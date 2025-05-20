@@ -9,7 +9,6 @@ defmodule Epoxi.Application do
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
       {Epoxi.Queue, [name: :inbox]},
       {Epoxi.Queue, [name: :dead]},
-      {Task.Supervisor, name: Epoxi.RouterTasks},
       {Epoxi.Queue.Processor,
        [
          producer_options: [
@@ -18,8 +17,9 @@ defmodule Epoxi.Application do
               Application.get_env(:epoxi, :producer_options)},
            concurrency: 10
          ]
-       ]}
-      # {Bandit, Application.get_env(:epoxi, :endpoint_options)}
+       ]},
+      # TODO: Optionall enable endpoint to be started per node.
+      {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
