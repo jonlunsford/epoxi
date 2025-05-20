@@ -20,12 +20,15 @@ defmodule Epoxi.Endpoint do
   post "/messages" do
     {status, body} =
       case conn.body_params do
-        %{"message" => message} ->
-          # TODO: Validate JSON payload
-          emails = Epoxi.JSONDecoder.decode(message)
-          Epoxi.Queue.enqueue_many(:inbox, emails)
+        %{"message" => message} = params ->
+          ip_pool =
+            params
+            |> Map.get("ip_pool", "default")
+            |> String.to_atom()
 
-          {200, "Message queued"}
+          emails = Epoxi.JSONDecoder.decode(message)
+
+          route_to_node(emails, ip_pool)
 
         _ ->
           {400, "Bad Request"}
@@ -36,5 +39,19 @@ defmodule Epoxi.Endpoint do
 
   match _ do
     send_resp(conn, 404, "oops... Nothing here :(")
+  end
+
+  defp route_to_node(emails, :default) do
+    node =
+      Epoxi.Cluster.init()
+      |> Epoxi.Cluster.find_pool(:default)
+      # TODO: Use algos (round robbin, etc) to select node in pool.
+      |> hd()
+
+    case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
+      :ok -> {200, "Messages queued in the default pool"}
+      {:ok, :message_sent_async} -> {200, "Messages queued in the default pool"}
+      {:error, reason} -> {400, reason}
+    end
   end
 end

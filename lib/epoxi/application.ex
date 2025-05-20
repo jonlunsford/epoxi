@@ -18,6 +18,7 @@ defmodule Epoxi.Application do
            concurrency: 10
          ]
        ]},
+      # TODO: Optionall enable endpoint to be started per node.
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
 
