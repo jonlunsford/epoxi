@@ -36,19 +36,6 @@ defmodule Epoxi.Test.Helpers do
     })
   end
 
-  def context_for_mailtrap do
-    config = %Epoxi.SmtpConfig{
-      username: System.get_env("MAILTRAP_USER"),
-      password: System.get_env("MAILTRAP_PW"),
-      relay: "sandbox.smtp.mailtrap.io",
-      hostname: "mailtrap.io",
-      port: 25,
-      auth: :always
-    }
-
-    %Epoxi.Context{config: config}
-  end
-
   def generate_emails(batch_size, build_fn \\ nil) do
     1..batch_size
     |> Enum.map(fn i ->
@@ -74,22 +61,6 @@ defmodule Epoxi.Test.Helpers do
       |> Map.merge(email_attrs)
 
     struct(%Epoxi.Email{}, attrs)
-  end
-
-  def build_send_args(email_attrs \\ %{}) do
-    email = build_email(email_attrs)
-
-    context = %Epoxi.Context{
-      config: %Epoxi.SmtpConfig{
-        relay: "localhost",
-        port: 2525,
-        auth: :never
-      }
-    }
-
-    message = Epoxi.Render.encode(email)
-
-    [context, email, message]
   end
 
   def text_email do

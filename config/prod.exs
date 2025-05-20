@@ -1,14 +1,14 @@
 use Mix.Config
 
 config :epoxi,
-  smtp_config: %{
-    port: 2525,
-    relay: "localhost",
-    hostname: "localhost",
-    auth: :never
-  },
-  producer_module: OffBroadwayMemory.Producer,
+  endpoint_options: [
+    plug: Epoxi.Endpoint,
+    scheme: :https,
+    port: 443,
+    certfile: "",
+    keyfile: ""
+  ],
+  producer_module: Epoxi.Queue.Producer,
   producer_options: [
-    buffer: :inbox,
-    on_failure: :discard
+    queue: :inbox
   ]

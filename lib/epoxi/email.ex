@@ -55,14 +55,12 @@ defmodule Epoxi.Email do
           :message => term()
         }
 
-  def handle_failure(
-        %Email{retry_count: @max_retries} = email,
-        {:temporary_failure, _reason} = failure
-      ) do
+  def handle_failure(%Email{retry_count: retry_count} = email, failure)
+      when retry_count >= @max_retries do
     email
     |> put_log_entry(failure)
     |> put_log_entry("Max retries reached")
-    |> update(%{status: :failed})
+    |> update(%{status: :permanent_failure})
   end
 
   def handle_failure(
@@ -75,10 +73,20 @@ defmodule Epoxi.Email do
     |> update(%{status: :retrying, retry_count: retry_count + 1})
   end
 
+  def handle_failure(
+        %Email{retry_count: retry_count} = email,
+        {:network_failure, _domain, _error} = failure
+      ) do
+    email
+    |> put_log_entry(failure)
+    |> put_next_retry()
+    |> update(%{status: :retrying, retry_count: retry_count + 1})
+  end
+
   def handle_failure(%Email{} = email, reason) do
     email
     |> put_log_entry(reason)
-    |> update(%{status: :failed})
+    |> update(%{status: :permanent_failure})
   end
 
   def handle_delivery(%Email{} = email, receipt) do
@@ -113,6 +121,7 @@ defmodule Epoxi.Email do
   def put_log_entry(%Email{} = email, entry) do
     entry = %{
       timestamp: DateTime.utc_now(),
+      status: email.status,
       message: entry
     }
 
