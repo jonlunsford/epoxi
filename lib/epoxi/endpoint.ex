@@ -41,16 +41,16 @@ defmodule Epoxi.Endpoint do
     send_resp(conn, 404, "oops... Nothing here :(")
   end
 
-  defp route_to_node(emails, :default) do
+  defp route_to_node(emails, pool) do
     node =
       Epoxi.Cluster.init()
-      |> Epoxi.Cluster.find_pool(:default)
+      |> Epoxi.Cluster.find_pool(pool)
       # TODO: Use algos (round robbin, etc) to select node in pool.
       |> hd()
 
     case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
-      :ok -> {200, "Messages queued in the default pool"}
-      {:ok, :message_sent_async} -> {200, "Messages queued in the default pool"}
+      :ok -> {200, "Messages queued in the #{pool} pool"}
+      {:ok, :message_sent_async} -> {200, "Messages queued in the #{pool} pool"}
       {:error, reason} -> {400, reason}
     end
   end
