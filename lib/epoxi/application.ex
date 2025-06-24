@@ -15,7 +15,7 @@ defmodule Epoxi.Application do
            module:
              {Application.get_env(:epoxi, :producer_module),
               Application.get_env(:epoxi, :producer_options)},
-           concurrency: 10
+           concurrency: 1
          ]
        ]},
       # TODO: Optionall enable endpoint to be started per node.
