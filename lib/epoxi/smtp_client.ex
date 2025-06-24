@@ -52,6 +52,19 @@ defmodule Epoxi.SmtpClient do
     :ok
   end
 
+  @spec send_batch([Email.t()], domain :: String.t()) :: {:ok, [Email.t()]} | {:error, term()}
+  def send_batch(emails, domain) do
+    with {:ok, socket} <- connect(relay: domain, hostname: domain),
+         {:ok, results} <- send_bulk(emails, socket),
+         :ok <- disconnect(socket) do
+      {:ok, results}
+    else
+      error -> error
+    end
+  end
+
+  @spec connect(opts :: Keyword.t()) ::
+          {:ok, :gen_smtp_client.socket()} | {:error, term()}
   def connect(opts \\ []) do
     config =
       opts
@@ -72,33 +85,6 @@ defmodule Epoxi.SmtpClient do
 
   def disconnect(socket) do
     :gen_smtp_client.close(socket)
-  end
-
-  @spec send_over_socket(Email.t(), :gen_smtp_client.socket()) ::
-          {:ok, Email.t()} | {:error, Email.t()}
-  def send_over_socket(email, socket) do
-    try do
-      message = Render.encode(email)
-
-      response =
-        :gen_smtp_client.deliver(
-          socket,
-          {email.from, email.to, message}
-        )
-
-      case response do
-        {:ok, receipt} ->
-          Email.handle_delivery(email, receipt)
-
-        {:error, reason} ->
-          Email.handle_failure(email, reason)
-      end
-    catch
-      reason ->
-        :gen_smtp_client.close(socket)
-        email = Email.handle_failure(email, reason)
-        {:error, email}
-    end
   end
 
   @doc """

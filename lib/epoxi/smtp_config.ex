@@ -1,21 +1,23 @@
 defmodule Epoxi.SmtpConfig do
   @moduledoc "Config for external SMTP adapters"
 
+  require Logger
+
   # Defaults are bare minimum to get a delivery. Ideally, serious senders
   # configure ssl, tls, dkim, etc.
-  defstruct relay: "",
-            hostname: "",
-            port: 25,
+  defstruct relay: "localhost",
+            hostname: "localhost",
+            port: 2525,
             ssl: false,
-            auth: :never,
-            tls: false,
-            max_batch_size: 10,
-            no_mx_lookups: true,
+            auth: :if_available,
+            tls: :if_available,
+            no_mx_lookups: false,
             on_transaction_error: :reset,
             username: "",
             retries: 3,
-            protocol: :smtp,
             password: ""
+
+  # trace_fun: &Epoxi.SmtpConfig.trace/2
 
   @type t :: %__MODULE__{
           relay: String.t(),
@@ -24,12 +26,10 @@ defmodule Epoxi.SmtpConfig do
           ssl: boolean,
           auth: Atom.t(),
           tls: boolean,
-          max_batch_size: integer,
           no_mx_lookups: boolean,
           on_transaction_error: Atom.t(),
           username: String.t(),
           password: String.t(),
-          protocol: Atom.t(),
           retries: number
         }
 
@@ -37,12 +37,6 @@ defmodule Epoxi.SmtpConfig do
 
   @spec new(opts :: Keyword.t()) :: SmtpConfig.t()
   def new(opts \\ []) do
-    opts =
-      opts
-      |> Keyword.put(:relay, Keyword.get(opts, :relay, "localhost"))
-      |> Keyword.put(:hostname, Keyword.get(opts, :hostname, "localhost"))
-      |> Keyword.put(:port, Keyword.get(opts, :port, 2525))
-
     struct(SmtpConfig, opts)
   end
 
@@ -75,5 +69,10 @@ defmodule Epoxi.SmtpConfig do
     |> Map.put(:relay, relay)
     |> Map.put(:hostname, domain)
     |> Utils.map_to_list()
+  end
+
+  def trace(formatted_string, args) do
+    interpolated = :io_lib.format(formatted_string, args) |> to_string()
+    Logger.info("SMTP trace: #{interpolated}")
   end
 end

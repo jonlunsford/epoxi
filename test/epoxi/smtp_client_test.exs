@@ -17,7 +17,7 @@ defmodule Epoxi.SmtpClientTest do
     assert {:ok, "1\r\n"} = SmtpClient.send_blocking(email, port: 2525, relay: "localhost")
   end
 
-  test "send_asyn/3 returns success" do
+  test "send_async/3 returns success" do
     [email] = Helpers.generate_emails(1)
 
     assert :ok =
@@ -26,6 +26,12 @@ defmodule Epoxi.SmtpClientTest do
                [port: 2525, relay: "localhost"],
                fn _response -> nil end
              )
+  end
+
+  test "send_batch/2 returns success" do
+    emails = Helpers.generate_emails(10)
+
+    assert {:ok, _response} = SmtpClient.send_batch(emails, "localhost")
   end
 
   test "send_bulk/3 returns success", %{socket: socket} do
