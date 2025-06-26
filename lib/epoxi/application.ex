@@ -7,7 +7,7 @@ defmodule Epoxi.Application do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
-      {Epoxi.Queue.Processor, [name: :default]},
+      {Epoxi.Queue.Pipeline, [name: :default]},
       # TODO: Optionall enable endpoint to be started per node.
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]

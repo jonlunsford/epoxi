@@ -1,4 +1,4 @@
-defmodule Epoxi.Queue.Processor do
+defmodule Epoxi.Queue.Pipeline do
   @moduledoc """
   Broadway pipeline for processing queued emails.
   """
