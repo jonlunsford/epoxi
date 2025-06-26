@@ -138,7 +138,7 @@ defmodule Epoxi.Node do
     {:ok, ips} = interfaces(node)
 
     node
-    |> Map.put(:emails_queued, Epoxi.Queue.length(:inbox))
+    |> Map.put(:emails_queued, Epoxi.Queue.length(:default_inbox))
     |> Map.put(:ip_addresses, ips)
     |> Map.merge(additional_state)
   end

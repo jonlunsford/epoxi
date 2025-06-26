@@ -16,6 +16,13 @@ defmodule Epoxi.Queue.ProcessorTest do
         {Epoxi.Queue.Processor, [name: processor_name, producer_options: producer_options]}
       )
 
+    on_exit(fn ->
+      :dets.close(String.to_charlist("#{processor_name}_inbox.dets"))
+      :dets.close(String.to_charlist("#{processor_name}_dlq.dets"))
+      File.rm!("priv/queues/#{processor_name}_inbox.dets")
+      File.rm!("priv/queues/#{processor_name}_dlq.dets")
+    end)
+
     {:ok, %{processor_name: processor_name}}
   end
 
