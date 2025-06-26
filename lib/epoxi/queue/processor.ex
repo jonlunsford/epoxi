@@ -21,11 +21,13 @@ defmodule Epoxi.Queue.Processor do
 
   def start_link(opts) do
     name = Keyword.get(opts, :name, __MODULE__)
-    producer_opts = Keyword.get(opts, :producer_options, [])
 
     broadway_opts = [
       name: name,
-      producer: producer_opts,
+      producer: [
+        module: {Epoxi.Queue.Producer, [poll_interval: 5_000, max_retries: 5]},
+        concurrency: 1
+      ],
       processors: [
         default: [concurrency: 1]
       ],

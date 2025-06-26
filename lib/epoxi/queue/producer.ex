@@ -33,35 +33,26 @@ defmodule Epoxi.Queue.Producer do
 
   @impl true
   def init(opts) do
-    inbox = Keyword.get(opts, :inbox_name)
-    dead_letter = Keyword.get(opts, :dead_letter_name)
-
-    if inbox == nil do
-      raise ArgumentError,
-            "invalid configuration given to Epoxi.Queue.Producer.init/1, required :inbox_name option not found"
-    end
-
-    if dead_letter == nil do
-      raise ArgumentError,
-            "invalid configuration given to Epoxi.Queue.Producer.init/1, required :dead_letter_name option not found"
-    end
+    ack_ref = opts[:broadway][:name]
+    inbox_ref = suffix_atom(ack_ref, "inbox")
+    dead_letter_ref = suffix_atom(ack_ref, "dlq")
 
     poll_interval = Keyword.get(opts, :poll_interval, 5_000)
     max_retries = Keyword.get(opts, :max_retries, 5)
-    ack_ref = opts[:broadway][:name]
 
     :persistent_term.put(ack_ref, %{
-      inbox_ref: inbox,
-      dead_letter_ref: dead_letter
+      inbox_ref: inbox_ref,
+      dead_letter_ref: dead_letter_ref
     })
 
     state = %{
       demand: 0,
-      inbox_ref: inbox,
-      dead_letter_ref: dead_letter,
+      inbox_ref: inbox_ref,
+      dead_letter_ref: dead_letter_ref,
       ack_ref: ack_ref,
       poll_interval: poll_interval,
-      max_retries: max_retries
+      max_retries: max_retries,
+      transformer: {__MODULE__, :transform, [ack_ref]}
     }
 
     schedule_poll(poll_interval)
@@ -129,6 +120,37 @@ defmodule Epoxi.Queue.Producer do
     :ok
   end
 
+  @impl Broadway.Producer
+  def prepare_for_start(_module, opts) do
+    name = Keyword.get(opts, :name)
+    inbox_ref = suffix_atom(name, "inbox")
+    dead_letter_ref = suffix_atom(name, "dlq")
+
+    children = [
+      {Epoxi.Queue, [name: inbox_ref]},
+      {Epoxi.Queue, [name: dead_letter_ref]}
+    ]
+
+    {children, opts}
+  end
+
+  @impl Broadway.Producer
+  def prepare_for_draining(state) do
+    with :ok <- Epoxi.Queue.sync(state.inbox_ref),
+         :ok <- Epoxi.Queue.sync(state.dead_letter_ref) do
+      {:noreply, [], state}
+    else
+      error -> {:stop, {:failed_to_sync_to_disk, error}, state}
+    end
+  end
+
+  def transform(message, ack_ref) do
+    %Broadway.Message{
+      data: message,
+      acknowledger: {__MODULE__, ack_ref, []}
+    }
+  end
+
   defp schedule_poll(interval) do
     Process.send_after(self(), :poll, interval)
   end
@@ -141,7 +163,7 @@ defmodule Epoxi.Queue.Producer do
     events =
       :telemetry.span([:epoxi, :queue, :fetch_messages], metadata, fn ->
         messages = fetch_multiple(inbox_ref, demand, [])
-        events = Enum.map(messages, &transform_message(&1, ack_ref))
+        events = Enum.map(messages, &transform(&1, ack_ref))
 
         {events, Map.put(metadata, :messages, messages)}
       end)
@@ -158,10 +180,11 @@ defmodule Epoxi.Queue.Producer do
     end
   end
 
-  defp transform_message(message, ack_ref) do
-    %Broadway.Message{
-      data: message,
-      acknowledger: {__MODULE__, ack_ref, []}
-    }
+  defp suffix_atom(atom, suffix) do
+    string = Atom.to_string(atom)
+
+    prefixed_string = "#{string}_#{suffix}"
+
+    String.to_atom(prefixed_string)
   end
 end
