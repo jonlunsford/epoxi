@@ -4,17 +4,21 @@ defmodule Epoxi.Queue.PipelineTest do
   setup do
     pipeline_name = :"test_pipeline_#{:erlang.unique_integer([:positive])}"
 
-    producer_options = [
-      module:
-        {Application.get_env(:epoxi, :producer_module),
-         Application.get_env(:epoxi, :producer_options)},
-      concurrency: 1
+    opts = [
+      name: pipeline_name,
+      batching: [
+        size: 10,
+        timeout: 5_000,
+        concurrency: 2
+      ],
+      rate_limiting: [
+        allowed_messages: 10,
+        interval: 1000
+      ]
     ]
 
     {:ok, _pid} =
-      start_supervised(
-        {Epoxi.Queue.Pipeline, [name: pipeline_name, producer_options: producer_options]}
-      )
+      start_supervised({Epoxi.Queue.Pipeline, opts})
 
     on_exit(fn ->
       :dets.close(String.to_charlist("#{pipeline_name}_inbox.dets"))

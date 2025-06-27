@@ -7,6 +7,12 @@ defmodule Epoxi.Queue.Pipeline do
 
   alias Epoxi.{SmtpClient, Parsing, Email}
 
+  @default_batching [
+    size: 50,
+    timeout: 5000,
+    concurrency: 10
+  ]
+
   def child_spec(opts) do
     id = Keyword.get(opts, :name, __MODULE__)
 
@@ -21,6 +27,7 @@ defmodule Epoxi.Queue.Pipeline do
 
   def start_link(opts) do
     name = Keyword.get(opts, :name, __MODULE__)
+    batching = Keyword.get(opts, :batching, @default_batching)
 
     broadway_opts = [
       name: name,
@@ -29,10 +36,14 @@ defmodule Epoxi.Queue.Pipeline do
         concurrency: 1
       ],
       processors: [
-        default: [concurrency: 1]
+        default: [concurrency: 2]
       ],
       batchers: [
-        pending: [batch_size: 50, batch_timeout: 5000, concurrency: 10],
+        pending: [
+          batch_size: batching[:size],
+          batch_timeout: batching[:timeout],
+          concurrency: batching[:concurrency]
+        ],
         retrying: [batch_size: 10, batch_timeout: 30_000, concurrency: 2]
       ]
     ]
