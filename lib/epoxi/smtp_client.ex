@@ -59,7 +59,7 @@ defmodule Epoxi.SmtpClient do
          :ok <- disconnect(socket) do
       {:ok, results}
     else
-      error -> error
+      error -> {:error, error}
     end
   end
 
