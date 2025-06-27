@@ -1,20 +1,32 @@
 defmodule Epoxi.Application do
   @moduledoc false
 
+  require Logger
   use Application
 
   def start(_type, _args) do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
-      {Epoxi.Queue.Pipeline, [name: :default]},
-      # TODO: Optionall enable endpoint to be started per node.
+      {Epoxi.PipelineSupervisor, []},
+      {Task, fn -> start_pipelines() end},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+
+  def start_pipelines() do
+    Logger.info("Starting pipelines...")
+
+    {:ok, _pid} =
+      Epoxi.start_pipeline(
+        name: :default,
+        batching: [
+          size: 50,
+          timeout: 3000,
+          concurrency: 5
+        ]
+      )
   end
 end

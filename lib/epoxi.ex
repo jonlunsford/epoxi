@@ -10,6 +10,10 @@ defmodule Epoxi do
 
   alias Epoxi.{Email, SmtpClient}
 
+  def start_pipeline(opts) do
+    Epoxi.PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts})
+  end
+
   @doc """
   Sends an email synchronously and returns the result.
 
