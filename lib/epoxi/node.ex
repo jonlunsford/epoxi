@@ -52,9 +52,9 @@ defmodule Epoxi.Node do
   @spec route_cast(
           target_node :: t(),
           mod :: module(),
-          fun :: fun(),
+          fun :: atom(),
           args :: list(any())
-        ) :: {:ok, :message_sent_async} | {:error, any()} | any()
+        ) :: any()
   def route_cast(%Epoxi.Node{} = target_node, mod, fun, args) do
     case local?(target_node) do
       true -> apply(mod, fun, args)
@@ -65,9 +65,9 @@ defmodule Epoxi.Node do
   @spec route_call(
           target_node :: t(),
           mod :: module(),
-          fun :: fun(),
+          fun :: atom(),
           args :: list(any())
-        ) :: {:ok, any()} | {:error, any()}
+        ) :: any()
   def route_call(%Epoxi.Node{} = target_node, mod, fun, args) do
     case local?(target_node) do
       true -> apply(mod, fun, args)
@@ -103,35 +103,22 @@ defmodule Epoxi.Node do
     Node.self() == node_name
   end
 
-  @spec erpc_call(target_node :: t(), mod :: module(), fun :: fun(), args :: list(any())) :: {:ok, any()} | {:error, any()}
+  @spec erpc_call(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) :: any()
   defp erpc_call(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 
-    case :erpc.call(node_name, mod, fun, args) do
-      {:badrpc, reason} ->
-        Logger.error("RPC call to #{node_name} failed: #{inspect(reason)}")
-        record_routing_telemetry(self(), node_name, start_time, reason)
-        {:error, reason}
-
-      result ->
-        record_routing_telemetry(self(), node_name, start_time, result)
-        {:ok, result}
-    end
+    result = :erpc.call(node_name, mod, fun, args)
+    record_routing_telemetry(self(), node_name, start_time, result)
+    result
   end
 
-  @spec erpc_cast(target_node :: t(), mod :: module(), fun :: fun(), args :: list(any())) :: {:ok, :message_sent_async} | {:error, any()}
+  @spec erpc_cast(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) :: any()
   defp erpc_cast(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 
-    case :erpc.cast(node_name, mod, fun, args) do
-      {:badrpc, reason} ->
-        Logger.error("RPC call to #{node_name} failed: #{inspect(reason)}")
-        record_routing_telemetry(self(), node_name, start_time, reason)
-        {:error, reason}
-
-      :ok ->
-        {:ok, :message_sent_async}
-    end
+    result = :erpc.cast(node_name, mod, fun, args)
+    record_routing_telemetry(self(), node_name, start_time, result)
+    result
   end
 
   defp put_state(%Epoxi.Node{} = node, additional_state) do

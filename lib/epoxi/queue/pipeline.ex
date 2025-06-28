@@ -83,7 +83,7 @@ defmodule Epoxi.Queue.Pipeline do
 
   defp re_enqueue_messages(messages) do
     Enum.map(messages, fn message ->
-      email = mark_email_as_failed(message.data, "Trying to re-enqueue")
+      email = Email.handle_failure(message.data, "Trying to re-enqueue")
 
       message
       |> Broadway.Message.put_data(email)
@@ -95,30 +95,14 @@ defmodule Epoxi.Queue.Pipeline do
     domain = batch_info.batch_key
     emails = Enum.map(messages, & &1.data)
 
-    case SmtpClient.send_batch(emails, domain) do
-      {:ok, results} ->
-        transform_delivery_results(messages, results)
-
-      {:error, reason} ->
-        failed_emails = mark_emails_as_failed(emails, reason)
-        transform_delivery_results(messages, failed_emails)
-    end
+    {:ok, results} = SmtpClient.send_batch(emails, domain)
+    transform_delivery_results(messages, results)
   end
 
   defp transform_delivery_results(messages, results) do
     messages
     |> Enum.zip(results)
     |> Enum.map(&handle_delivery/1)
-  end
-
-  defp mark_emails_as_failed(emails, reason) do
-    Enum.map(emails, fn email ->
-      mark_email_as_failed(email, reason)
-    end)
-  end
-
-  defp mark_email_as_failed(email, reason) do
-    Email.handle_failure(email, reason)
   end
 
   defp handle_delivery({message, %Email{status: :delivered} = email}) do

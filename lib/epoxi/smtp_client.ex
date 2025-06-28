@@ -6,7 +6,7 @@ defmodule Epoxi.SmtpClient do
 
   alias Epoxi.{Email, Render, SmtpConfig, IpPool}
 
-  @type socket :: :gen_smtp_client.socket()
+  @type socket :: any()
 
   @doc """
   Sends an email and blocks until a response is received. Returns an error tuple
@@ -26,7 +26,6 @@ defmodule Epoxi.SmtpClient do
            {email.from, email.to, message},
            config
          ) do
-      {:ok, receipt} -> {:ok, receipt}
       receipt when is_binary(receipt) -> {:ok, receipt}
       error -> {:error, error}
     end
@@ -35,8 +34,8 @@ defmodule Epoxi.SmtpClient do
   @doc """
   Send a non-blocking email via a spawned_linked process
   """
-  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function | nil) :: :ok
-  def send_async(%Email{} = email, opts \\ [], callback \\ nil) do
+  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function()) :: :ok
+  def send_async(%Email{} = email, opts \\ [], callback) do
     email = Email.put_content_type(email)
     message = Render.encode(email)
 
@@ -68,7 +67,7 @@ defmodule Epoxi.SmtpClient do
   end
 
   @spec connect(opts :: Keyword.t()) ::
-          {:ok, :gen_smtp_client.socket()} | {:error, term()}
+          {:ok, socket()} | {:error, term()}
   def connect(opts \\ []) do
     config =
       opts
@@ -79,11 +78,8 @@ defmodule Epoxi.SmtpClient do
       {:ok, socket} ->
         {:ok, socket}
 
-      {:error, :permanent_failure, details} ->
-        {:error, details}
-
-      {:error, reason} ->
-        {:error, reason}
+      {:error, reason, details} ->
+        {:error, {reason, details}}
     end
   end
 

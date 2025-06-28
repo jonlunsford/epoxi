@@ -8,7 +8,7 @@ defmodule Epoxi.Utils do
   Loads name servers from the OS if none are currently loaded
   Returns a sorted list of mx records, by priority, for the specified domain
   """
-  @spec mx_lookup(domain :: String.t(), lookup_handler :: Fun.t()) :: List.t(Tuple.t())
+  @spec mx_lookup(domain :: String.t(), lookup_handler :: (String.t() -> list(tuple()))) :: list(tuple())
   def mx_lookup(domain, lookup_handler \\ &inet_res_lookup/1) do
     with :ok <- load_ns(),
          result <- lookup_handler.(domain),
