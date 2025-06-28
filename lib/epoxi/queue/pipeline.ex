@@ -26,10 +26,16 @@ defmodule Epoxi.Queue.Pipeline do
   end
 
   def start_link(opts) do
+    # Accept the complete Broadway configuration from PipelineSupervisor
+    broadway_opts = Keyword.get(opts, :broadway_opts, default_broadway_opts(opts))
+    Broadway.start_link(__MODULE__, broadway_opts)
+  end
+  
+  defp default_broadway_opts(opts) do
     name = Keyword.get(opts, :name, __MODULE__)
     batching = Keyword.get(opts, :batching, @default_batching)
 
-    broadway_opts = [
+    [
       name: name,
       producer: [
         module: {Epoxi.Queue.Producer, [poll_interval: 5_000, max_retries: 5]},
@@ -51,8 +57,6 @@ defmodule Epoxi.Queue.Pipeline do
         ]
       ]
     ]
-
-    Broadway.start_link(__MODULE__, broadway_opts)
   end
 
   @impl true

@@ -6,7 +6,7 @@ defmodule Epoxi.IpPool do
   based on provider policies and pool configurations.
   """
 
-  alias Epoxi.{Email, ProviderPolicy, Parsing}
+  alias Epoxi.{Email, ProviderPolicy, Parsing, IpRegistry}
 
   @doc """
   Assign IPs to emails based on the named IP pool and provider policies.
@@ -41,16 +41,20 @@ defmodule Epoxi.IpPool do
 
   @doc """
   Get available IPs from the named pool for a specific domain.
+  Now uses cluster-wide IP discovery instead of hardcoded IPs.
   """
   @spec get_pool_ips(atom(), String.t()) :: [String.t()]
   def get_pool_ips(pool_name, _domain) do
-    # For now, return a default set of IPs based on pool name
-    # In production, this would fetch from configuration or persistent storage
-    case pool_name do
-      :default -> ["127.0.0.1", "127.0.0.2"]
-      :high_volume -> ["10.0.1.1", "10.0.1.2", "10.0.1.3", "10.0.1.4"]
-      :warmup -> ["192.168.1.100"]
-      _ -> ["127.0.0.1"]
+    case IpRegistry.get_pool_ips(pool_name) do
+      pool_ips when map_size(pool_ips) > 0 ->
+        # Flatten all IPs from all nodes in the pool
+        pool_ips
+        |> Map.values()
+        |> List.flatten()
+        
+      _empty_pool ->
+        # Fallback to local node IPs if pool is empty or not found
+        get_fallback_ips(pool_name)
     end
   end
 
@@ -111,7 +115,48 @@ defmodule Epoxi.IpPool do
     distribute_messages_across_ips(available_ips, message_count, max_per_ip)
   end
 
-  # Private helper for batch allocation
+  @doc """
+  Get IPs available for a specific pool from the cluster registry.
+  Returns a map of node_name => [ip_addresses] for the pool.
+  """
+  @spec get_pool_node_ips(atom()) :: %{atom() => [String.t()]}
+  def get_pool_node_ips(pool_name) do
+    IpRegistry.get_pool_ips(pool_name)
+  end
+
+  @doc """
+  Get all cluster IPs with their owning nodes.
+  Useful for debugging and monitoring.
+  """
+  @spec get_all_cluster_ips() :: [{String.t(), atom()}]
+  def get_all_cluster_ips() do
+    IpRegistry.get_all_cluster_ips()
+  end
+
+  # Private helper functions
+
+  defp get_fallback_ips(pool_name) do
+    # Try to get local node IPs first
+    case IpRegistry.get_node_ips(Node.self()) do
+      [] ->
+        # Ultimate fallback to hardcoded localhost IPs
+        get_hardcoded_fallback_ips(pool_name)
+        
+      local_ips ->
+        local_ips
+    end
+  end
+
+  defp get_hardcoded_fallback_ips(pool_name) do
+    # Last resort hardcoded IPs for development/testing
+    case pool_name do
+      :default -> ["127.0.0.1"]
+      :high_volume -> ["127.0.0.1", "127.0.0.2"]
+      :warmup -> ["127.0.0.1"]
+      _ -> ["127.0.0.1"]
+    end
+  end
+
   defp distribute_messages_across_ips([], message_count, _max_per_ip) do
     # Fallback to localhost
     List.duplicate("127.0.0.1", message_count)

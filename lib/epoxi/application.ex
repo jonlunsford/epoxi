@@ -8,6 +8,7 @@ defmodule Epoxi.Application do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
+      {Epoxi.IpRegistry, []},
       {Epoxi.PipelineSupervisor, []},
       {Task, fn -> start_pipelines() end},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}

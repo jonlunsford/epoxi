@@ -7,7 +7,7 @@ defmodule Epoxi.ClusterTest do
 
       node_names =
         cluster
-        |> Epoxi.Cluster.find_pool(:default)
+        |> Epoxi.Cluster.find_nodes_in_pool(:default)
         |> Enum.map(& &1.name)
 
       assert Enum.member?(node_names, Node.self())
@@ -20,7 +20,7 @@ defmodule Epoxi.ClusterTest do
         Epoxi.Cluster.new()
         |> Epoxi.Cluster.get_current_state()
 
-      nodes = Epoxi.Cluster.find_pool(cluster, :default)
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :default)
 
       assert Enum.all?(nodes, &(&1.status == :up))
       assert cluster.node_count == Enum.count(nodes)
@@ -47,7 +47,7 @@ defmodule Epoxi.ClusterTest do
 
     node_names =
       cluster
-      |> Epoxi.Cluster.find_pool(:default)
+      |> Epoxi.Cluster.find_nodes_in_pool(:default)
       |> Enum.map(& &1.name)
 
     assert Enum.member?(node_names, node.name)
@@ -59,9 +59,9 @@ defmodule Epoxi.ClusterTest do
 
       cluster =
         Epoxi.Cluster.new(nodes: [node])
-        |> Epoxi.Cluster.add_node_to_pool(node)
+        |> Epoxi.Cluster.add_node_to_ip_pool(node)
 
-      nodes = MapSet.to_list(cluster.pools[:high])
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :high)
 
       assert nodes == [node]
     end
