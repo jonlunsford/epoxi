@@ -4,7 +4,7 @@ defmodule Epoxi.SmtpClient do
   """
   require Logger
 
-  alias Epoxi.{Email, Render, SmtpConfig, IpPool}
+  alias Epoxi.{Email, Render, SmtpConfig}
 
   @type socket :: any()
 
@@ -55,9 +55,7 @@ defmodule Epoxi.SmtpClient do
 
   @spec send_batch([Email.t()], domain :: String.t()) :: {:ok, [Email.t()]} | {:error, term()}
   def send_batch(emails, domain) do
-    outgoing_ip = IpPool.get_next_ip()
-
-    with {:ok, socket} <- connect(relay: domain, hostname: domain, outgoing_ip: outgoing_ip),
+    with {:ok, socket} <- connect(relay: domain, hostname: domain),
          {:ok, results} <- send_bulk(emails, socket),
          :ok <- disconnect(socket) do
       {:ok, results}
