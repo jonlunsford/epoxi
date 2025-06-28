@@ -12,6 +12,7 @@ defmodule Epoxi.Test.Router do
     case mx_records do
       [] ->
         [{0, hostname}]
+
       _ ->
         mx_records
     end

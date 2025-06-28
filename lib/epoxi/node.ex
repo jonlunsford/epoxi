@@ -53,8 +53,7 @@ defmodule Epoxi.Node do
           target_node :: t(),
           mod :: module(),
           fun :: fun(),
-          args ::
-            Keyword.t()
+          args :: list(any())
         ) :: {:ok, :message_sent_async} | {:error, any()} | any()
   def route_cast(%Epoxi.Node{} = target_node, mod, fun, args) do
     case local?(target_node) do
@@ -67,8 +66,7 @@ defmodule Epoxi.Node do
           target_node :: t(),
           mod :: module(),
           fun :: fun(),
-          args ::
-            Keyword.t()
+          args :: list(any())
         ) :: {:ok, any()} | {:error, any()}
   def route_call(%Epoxi.Node{} = target_node, mod, fun, args) do
     case local?(target_node) do
@@ -89,7 +87,7 @@ defmodule Epoxi.Node do
     end
   end
 
-  @spec interfaces(targe_node :: t()) :: {:ok, [ip_address()], {:error, term()}}
+  @spec interfaces(target_node :: t()) :: {:ok, [ip_address()]} | {:error, term()}
   def interfaces(%Epoxi.Node{} = target_node) do
     case route_call(target_node, :inet, :getifaddrs, []) do
       {:ok, interfaces} ->
@@ -105,6 +103,7 @@ defmodule Epoxi.Node do
     Node.self() == node_name
   end
 
+  @spec erpc_call(target_node :: t(), mod :: module(), fun :: fun(), args :: list(any())) :: {:ok, any()} | {:error, any()}
   defp erpc_call(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 
@@ -120,6 +119,7 @@ defmodule Epoxi.Node do
     end
   end
 
+  @spec erpc_cast(target_node :: t(), mod :: module(), fun :: fun(), args :: list(any())) :: {:ok, :message_sent_async} | {:error, any()}
   defp erpc_cast(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 

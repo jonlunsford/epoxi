@@ -3,7 +3,8 @@ defmodule Epoxi.IpPool do
   Manages a pool of outgoing IP addresses for SMTP connections.
   """
 
-  @ips ["127.0.0.1"] # Placeholder: Replace with your actual outgoing IP addresses
+  # Placeholder: Replace with your actual outgoing IP addresses
+  @ips ["127.0.0.1"]
   @current_ip_index :epoxi_ip_pool_current_index
 
   @doc """

@@ -25,10 +25,10 @@ defmodule Epoxi.SmtpConfig do
           hostname: String.t(),
           port: integer,
           ssl: boolean,
-          auth: Atom.t(),
+          auth: atom(),
           tls: boolean,
           no_mx_lookups: boolean,
-          on_transaction_error: Atom.t(),
+          on_transaction_error: atom(),
           username: String.t(),
           password: String.t(),
           retries: number,
@@ -64,7 +64,7 @@ defmodule Epoxi.SmtpConfig do
     for_domain(config, hostname)
   end
 
-  @spec for_domain(t(), Strong.t()) :: Keyword.t()
+  @spec for_domain(t(), String.t()) :: Keyword.t()
   def for_domain(%SmtpConfig{} = config, domain) do
     relay =
       case Utils.mx_lookup(domain) do
