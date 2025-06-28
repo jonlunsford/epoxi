@@ -5,6 +5,8 @@ defmodule Epoxi.Application do
   use Application
 
   def start(_type, _args) do
+    Epoxi.IpPool.init()
+
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
