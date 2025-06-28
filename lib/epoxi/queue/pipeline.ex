@@ -5,7 +5,7 @@ defmodule Epoxi.Queue.Pipeline do
 
   use Broadway
 
-  alias Epoxi.{SmtpClient, Parsing, Email}
+  alias Epoxi.{SmtpClient, Parsing, Email, IpPool}
 
   @default_batching [
     size: 50,
@@ -44,7 +44,11 @@ defmodule Epoxi.Queue.Pipeline do
           batch_timeout: batching[:timeout],
           concurrency: batching[:concurrency]
         ],
-        retrying: [batch_size: 10, batch_timeout: 30_000, concurrency: 2]
+        retrying: [
+          batch_size: 10,
+          batch_timeout: 30_000,
+          concurrency: 2
+        ]
       ]
     ]
 
@@ -53,10 +57,14 @@ defmodule Epoxi.Queue.Pipeline do
 
   @impl true
   def handle_message(_processor, %Broadway.Message{data: email} = message, _context) do
+    # Use assigned IP and domain as batch key for consistent batching
     domain = Parsing.get_hostname(email.to)
+    ip = email.assigned_ip || "127.0.0.1"  # Fallback if IP not assigned
+    
+    batch_key = {domain, ip}
 
     message
-    |> Broadway.Message.put_batch_key(domain)
+    |> Broadway.Message.put_batch_key(batch_key)
     |> Broadway.Message.put_batcher(email.status)
   end
 
@@ -92,10 +100,14 @@ defmodule Epoxi.Queue.Pipeline do
   end
 
   defp deliver_batch(messages, batch_info) do
-    domain = batch_info.batch_key
+    # Extract domain and IP from batch_key set in handle_message
+    {domain, ip} = batch_info.batch_key
     emails = Enum.map(messages, & &1.data)
+    
+    # Track IP usage for rate limiting
+    IpPool.track_usage(ip, domain, length(emails))
 
-    {:ok, results} = SmtpClient.send_batch(emails, domain)
+    {:ok, results} = SmtpClient.send_batch(emails, domain, ip)
     transform_delivery_results(messages, results)
   end
 

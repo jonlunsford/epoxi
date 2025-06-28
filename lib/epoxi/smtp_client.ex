@@ -64,6 +64,23 @@ defmodule Epoxi.SmtpClient do
     end
   end
 
+  @spec send_batch([Email.t()], domain :: String.t(), ip :: String.t()) :: {:ok, [Email.t()]} | {:error, term()}
+  def send_batch(emails, domain, ip) do
+    opts = [
+      relay: domain,
+      hostname: domain,
+      sockopts: [{:ip, String.to_charlist(ip)}]
+    ]
+    
+    with {:ok, socket} <- connect(opts),
+         {:ok, results} <- send_bulk(emails, socket),
+         :ok <- disconnect(socket) do
+      {:ok, results}
+    else
+      error -> {:error, error}
+    end
+  end
+
   @spec connect(opts :: Keyword.t()) ::
           {:ok, socket()} | {:error, term()}
   def connect(opts \\ []) do

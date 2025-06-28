@@ -42,13 +42,16 @@ defmodule Epoxi.Endpoint do
   end
 
   defp route_to_node(emails, pool) do
+    # Assign IPs to emails before queueing
+    emails_with_ips = Epoxi.IpPool.assign_ips(emails, pool)
+    
     node =
       Epoxi.Cluster.init()
       |> Epoxi.Cluster.find_pool(pool)
       # TODO: Use algos (round robbin, etc) to select node in pool.
       |> hd()
 
-    case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
+    case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails_with_ips]) do
       :ok -> {200, "Messages queued in the #{pool} pool"}
       {:ok, :message_sent_async} -> {200, "Messages queued in the #{pool} pool"}
       {:error, reason} -> {400, reason}

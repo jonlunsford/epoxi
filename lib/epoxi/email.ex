@@ -27,7 +27,10 @@ defmodule Epoxi.Email do
             delivery: nil,
             log: [],
             content_type: nil,
-            headers: %{}
+            headers: %{},
+            assigned_ip: nil,
+            ip_pool: nil,
+            provider_policy: nil
 
   @type t :: %__MODULE__{
           subject: String.t(),
@@ -40,14 +43,17 @@ defmodule Epoxi.Email do
           data: map(),
           html: String.t(),
           text: String.t(),
-          updated_at: DateTime.t(),
-          delivered_at: DateTime.t(),
-          next_retry_at: DateTime.t(),
+          updated_at: DateTime.t() | nil,
+          delivered_at: DateTime.t() | nil,
+          next_retry_at: DateTime.t() | nil,
           retry_count: non_neg_integer(),
           status: atom(),
           log: [log_entry()],
-          content_type: String.t(),
-          headers: map()
+          content_type: String.t() | nil,
+          headers: map(),
+          assigned_ip: String.t() | nil,
+          ip_pool: atom() | nil,
+          provider_policy: map() | nil
         }
 
   @type log_entry :: %{
@@ -151,5 +157,17 @@ defmodule Epoxi.Email do
       next_retry_at ->
         DateTime.compare(DateTime.utc_now(), next_retry_at) == :gt
     end
+  end
+
+  @doc """
+  Assigns an IP address, pool, and provider policy to an email.
+  """
+  @spec assign_ip(t(), String.t(), atom(), map()) :: t()
+  def assign_ip(%Email{} = email, ip, pool, policy) do
+    %{email |
+      assigned_ip: ip,
+      ip_pool: pool,
+      provider_policy: policy
+    }
   end
 end
