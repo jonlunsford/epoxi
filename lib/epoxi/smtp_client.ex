@@ -6,6 +6,8 @@ defmodule Epoxi.SmtpClient do
 
   alias Epoxi.{Email, Render, SmtpConfig}
 
+  @type socket :: any()
+
   @doc """
   Sends an email and blocks until a response is received. Returns an error tuple
   or a binary that is the send receipt returned from the receiving server
@@ -24,7 +26,6 @@ defmodule Epoxi.SmtpClient do
            {email.from, email.to, message},
            config
          ) do
-      {:ok, receipt} -> {:ok, receipt}
       receipt when is_binary(receipt) -> {:ok, receipt}
       error -> {:error, error}
     end
@@ -33,8 +34,8 @@ defmodule Epoxi.SmtpClient do
   @doc """
   Send a non-blocking email via a spawned_linked process
   """
-  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function) :: :ok
-  def send_async(%Email{} = email, opts \\ [], callback \\ nil) do
+  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function()) :: :ok
+  def send_async(%Email{} = email, opts \\ [], callback) do
     email = Email.put_content_type(email)
     message = Render.encode(email)
 
@@ -63,8 +64,25 @@ defmodule Epoxi.SmtpClient do
     end
   end
 
+  @spec send_batch([Email.t()], domain :: String.t(), ip :: String.t()) :: {:ok, [Email.t()]} | {:error, term()}
+  def send_batch(emails, domain, ip) do
+    opts = [
+      relay: domain,
+      hostname: domain,
+      sockopts: [{:ip, String.to_charlist(ip)}]
+    ]
+    
+    with {:ok, socket} <- connect(opts),
+         {:ok, results} <- send_bulk(emails, socket),
+         :ok <- disconnect(socket) do
+      {:ok, results}
+    else
+      error -> {:error, error}
+    end
+  end
+
   @spec connect(opts :: Keyword.t()) ::
-          {:ok, :gen_smtp_client.socket()} | {:error, term()}
+          {:ok, socket()} | {:error, term()}
   def connect(opts \\ []) do
     config =
       opts
@@ -75,11 +93,8 @@ defmodule Epoxi.SmtpClient do
       {:ok, socket} ->
         {:ok, socket}
 
-      {:error, reason} ->
-        {:error, reason}
-
-      {:error, _permanent_failure, details} ->
-        {:error, details}
+      {:error, reason, details} ->
+        {:error, {reason, details}}
     end
   end
 
@@ -91,8 +106,8 @@ defmodule Epoxi.SmtpClient do
   Delivers email over a persistent socket connection, this can be used when
   PIPELINING on the receiving server is available.
   """
-  @spec send_bulk([Email.t()], :gen_smtp_client.socket(), acc :: List.t()) ::
-          {:ok, [Email.at()]} | {:error, term(), [Email.t()]}
+  @spec send_bulk([Email.t()], socket(), acc :: list(Email.t())) ::
+          {:ok, [Email.t()]} | {:error, term(), list(Email.t())}
   def send_bulk(emails, socket, acc \\ []) do
     deliver(emails, socket, acc)
   end

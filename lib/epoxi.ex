@@ -69,10 +69,6 @@ defmodule Epoxi do
     case SmtpClient.connect(opts) do
       {:ok, socket} ->
         SmtpClient.send_bulk(emails, socket)
-
-      {:error, reason} ->
-        Logger.error("Failed to connect: #{inspect(reason)}")
-        {:error, reason}
     end
   end
 

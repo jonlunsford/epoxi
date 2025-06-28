@@ -5,7 +5,7 @@ defmodule Epoxi.Queue.Pipeline do
 
   use Broadway
 
-  alias Epoxi.{SmtpClient, Parsing, Email}
+  alias Epoxi.{SmtpClient, Parsing, Email, IpPool}
 
   @default_batching [
     size: 50,
@@ -26,10 +26,16 @@ defmodule Epoxi.Queue.Pipeline do
   end
 
   def start_link(opts) do
+    # Accept the complete Broadway configuration from PipelineSupervisor
+    broadway_opts = Keyword.get(opts, :broadway_opts, default_broadway_opts(opts))
+    Broadway.start_link(__MODULE__, broadway_opts)
+  end
+  
+  defp default_broadway_opts(opts) do
     name = Keyword.get(opts, :name, __MODULE__)
     batching = Keyword.get(opts, :batching, @default_batching)
 
-    broadway_opts = [
+    [
       name: name,
       producer: [
         module: {Epoxi.Queue.Producer, [poll_interval: 5_000, max_retries: 5]},
@@ -44,19 +50,25 @@ defmodule Epoxi.Queue.Pipeline do
           batch_timeout: batching[:timeout],
           concurrency: batching[:concurrency]
         ],
-        retrying: [batch_size: 10, batch_timeout: 30_000, concurrency: 2]
+        retrying: [
+          batch_size: 10,
+          batch_timeout: 30_000,
+          concurrency: 2
+        ]
       ]
     ]
-
-    Broadway.start_link(__MODULE__, broadway_opts)
   end
 
   @impl true
   def handle_message(_processor, %Broadway.Message{data: email} = message, _context) do
+    # Use assigned IP and domain as batch key for consistent batching
     domain = Parsing.get_hostname(email.to)
+    ip = email.assigned_ip || "127.0.0.1"  # Fallback if IP not assigned
+    
+    batch_key = {domain, ip}
 
     message
-    |> Broadway.Message.put_batch_key(domain)
+    |> Broadway.Message.put_batch_key(batch_key)
     |> Broadway.Message.put_batcher(email.status)
   end
 
@@ -83,7 +95,7 @@ defmodule Epoxi.Queue.Pipeline do
 
   defp re_enqueue_messages(messages) do
     Enum.map(messages, fn message ->
-      email = mark_email_as_failed(message.data, "Trying to re-enqueue")
+      email = Email.handle_failure(message.data, "Trying to re-enqueue")
 
       message
       |> Broadway.Message.put_data(email)
@@ -92,33 +104,21 @@ defmodule Epoxi.Queue.Pipeline do
   end
 
   defp deliver_batch(messages, batch_info) do
-    domain = batch_info.batch_key
+    # Extract domain and IP from batch_key set in handle_message
+    {domain, ip} = batch_info.batch_key
     emails = Enum.map(messages, & &1.data)
+    
+    # Track IP usage for rate limiting
+    IpPool.track_usage(ip, domain, length(emails))
 
-    case SmtpClient.send_batch(emails, domain) do
-      {:ok, results} ->
-        transform_delivery_results(messages, results)
-
-      {:error, reason} ->
-        failed_emails = mark_emails_as_failed(emails, reason)
-        transform_delivery_results(messages, failed_emails)
-    end
+    {:ok, results} = SmtpClient.send_batch(emails, domain, ip)
+    transform_delivery_results(messages, results)
   end
 
   defp transform_delivery_results(messages, results) do
     messages
     |> Enum.zip(results)
     |> Enum.map(&handle_delivery/1)
-  end
-
-  defp mark_emails_as_failed(emails, reason) do
-    Enum.map(emails, fn email ->
-      mark_email_as_failed(email, reason)
-    end)
-  end
-
-  defp mark_email_as_failed(email, reason) do
-    Email.handle_failure(email, reason)
   end
 
   defp handle_delivery({message, %Email{status: :delivered} = email}) do

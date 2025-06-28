@@ -15,7 +15,8 @@ defmodule Epoxi.SmtpConfig do
             on_transaction_error: :reset,
             username: "",
             retries: 3,
-            password: ""
+            password: "",
+            sockopts: []
 
   # trace_fun: &Epoxi.SmtpConfig.trace/2
 
@@ -24,20 +25,31 @@ defmodule Epoxi.SmtpConfig do
           hostname: String.t(),
           port: integer,
           ssl: boolean,
-          auth: Atom.t(),
+          auth: atom(),
           tls: boolean,
           no_mx_lookups: boolean,
-          on_transaction_error: Atom.t(),
+          on_transaction_error: atom(),
           username: String.t(),
           password: String.t(),
-          retries: number
+          retries: number,
+          sockopts: [:gen_tcp.connect_option()]
         }
 
   alias Epoxi.{Email, Utils, SmtpConfig, Parsing}
 
   @spec new(opts :: Keyword.t()) :: SmtpConfig.t()
   def new(opts \\ []) do
-    struct(SmtpConfig, opts)
+    outgoing_ip = Keyword.get(opts, :outgoing_ip)
+    sockopts = Keyword.get(opts, :sockopts, [])
+
+    updated_opts =
+      if outgoing_ip do
+        Keyword.put(opts, :sockopts, [{:ip, String.to_charlist(outgoing_ip)} | sockopts])
+      else
+        opts
+      end
+
+    struct(SmtpConfig, updated_opts)
   end
 
   def to_keyword_list(%SmtpConfig{} = smtp_config) do
@@ -52,7 +64,7 @@ defmodule Epoxi.SmtpConfig do
     for_domain(config, hostname)
   end
 
-  @spec for_domain(t(), Strong.t()) :: Keyword.t()
+  @spec for_domain(t(), String.t()) :: Keyword.t()
   def for_domain(%SmtpConfig{} = config, domain) do
     relay =
       case Utils.mx_lookup(domain) do
