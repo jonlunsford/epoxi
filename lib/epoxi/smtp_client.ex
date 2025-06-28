@@ -4,7 +4,7 @@ defmodule Epoxi.SmtpClient do
   """
   require Logger
 
-  alias Epoxi.{Email, Render, SmtpConfig}
+  alias Epoxi.{Email, Render, SmtpConfig, IpPool}
 
   @doc """
   Sends an email and blocks until a response is received. Returns an error tuple
@@ -54,7 +54,9 @@ defmodule Epoxi.SmtpClient do
 
   @spec send_batch([Email.t()], domain :: String.t()) :: {:ok, [Email.t()]} | {:error, term()}
   def send_batch(emails, domain) do
-    with {:ok, socket} <- connect(relay: domain, hostname: domain),
+    outgoing_ip = IpPool.get_next_ip()
+
+    with {:ok, socket} <- connect(relay: domain, hostname: domain, outgoing_ip: outgoing_ip),
          {:ok, results} <- send_bulk(emails, socket),
          :ok <- disconnect(socket) do
       {:ok, results}
