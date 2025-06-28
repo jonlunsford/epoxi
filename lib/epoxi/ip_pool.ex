@@ -112,7 +112,7 @@ defmodule Epoxi.IpPool do
   end
 
   # Private helper for batch allocation
-  defp distribute_messages_across_ips(ips, message_count, _max_per_ip) when ips == [] do
+  defp distribute_messages_across_ips([], message_count, _max_per_ip) do
     # Fallback to localhost
     List.duplicate("127.0.0.1", message_count)
   end
