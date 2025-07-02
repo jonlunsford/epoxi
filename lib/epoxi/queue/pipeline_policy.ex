@@ -22,19 +22,68 @@ defmodule Epoxi.Queue.PipelinePolicy do
 
   alias Epoxi.Queue.PipelinePolicy
 
+  @spec new(keyword()) :: PipelinePolicy.t()
   def new(opts \\ []) do
     struct(PipelinePolicy, opts)
   end
 
-  def retry_batch_size(%PipelinePolicy{batch_size: batch_size}) do
+  @spec broadway_opts(PipelinePolicy.t()) :: keyword()
+  def broadway_opts(%PipelinePolicy{name: name} = policy) do
+    [
+      name: name,
+      producer: producer_config(policy),
+      processors: processor_config(policy),
+      batchers: batcher_config(policy)
+    ]
+  end
+
+  defp producer_config(%PipelinePolicy{batch_timeout: timeout, max_retries: retries}) do
+    [
+      module: {Epoxi.Queue.Producer, [poll_interval: timeout, max_retries: retries]},
+      concurrency: 1
+    ]
+  end
+
+  defp processor_config(%PipelinePolicy{}) do
+    [default: [concurrency: 2]]
+  end
+
+  defp batcher_config(%PipelinePolicy{} = policy) do
+    [
+      pending: pending_batcher_config(policy),
+      retrying: retrying_batcher_config(policy)
+    ]
+  end
+
+  defp pending_batcher_config(%PipelinePolicy{
+         batch_size: size,
+         batch_timeout: timeout,
+         max_connections: connections
+       }) do
+    [
+      batch_size: size,
+      batch_timeout: timeout,
+      concurrency: connections
+    ]
+  end
+
+  defp retrying_batcher_config(%PipelinePolicy{} = policy) do
+    [
+      batch_size: retry_batch_size(policy),
+      batch_timeout: retry_batch_timeout(policy),
+      concurrency: retry_max_connections(policy)
+    ]
+  end
+
+  defp retry_batch_size(%PipelinePolicy{batch_size: batch_size}) do
     max(5, div(batch_size, 4))
   end
 
-  def retry_batch_timeout(%PipelinePolicy{batch_timeout: batch_timeout}) do
+  defp retry_batch_timeout(%PipelinePolicy{batch_timeout: batch_timeout}) do
     max(30_000, batch_timeout * 2)
   end
 
-  def retry_max_connections(%PipelinePolicy{max_connections: connections}) do
+  defp retry_max_connections(%PipelinePolicy{max_connections: connections}) do
     max(2, div(connections, 5))
   end
 end

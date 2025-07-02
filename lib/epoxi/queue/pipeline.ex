@@ -9,30 +9,7 @@ defmodule Epoxi.Queue.Pipeline do
   alias Epoxi.Queue.PipelinePolicy
 
   def build_policy_opts(%PipelinePolicy{} = policy) do
-    [
-      name: policy.name,
-      producer: [
-        module:
-          {Epoxi.Queue.Producer,
-           [poll_interval: policy.batch_timeout, max_retries: policy.max_retries]},
-        concurrency: 1
-      ],
-      processors: [
-        default: [concurrency: 2]
-      ],
-      batchers: [
-        pending: [
-          batch_size: policy.batch_size,
-          batch_timeout: policy.batch_timeout,
-          concurrency: policy.max_connections
-        ],
-        retrying: [
-          batch_size: PipelinePolicy.retry_batch_size(policy),
-          batch_timeout: PipelinePolicy.retry_batch_timeout(policy),
-          concurrency: PipelinePolicy.retry_max_connections(policy)
-        ]
-      ]
-    ]
+    PipelinePolicy.broadway_opts(policy)
   end
 
   def child_spec(opts) do
