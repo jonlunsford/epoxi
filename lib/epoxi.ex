@@ -10,7 +10,8 @@ defmodule Epoxi do
 
   alias Epoxi.{Email, SmtpClient}
 
-  def start_pipeline(opts) do
+  def start_pipeline(policy) do
+    opts = Epoxi.Queue.Pipeline.build_policy_opts(policy)
     Epoxi.PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts})
   end
 

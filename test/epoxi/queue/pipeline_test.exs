@@ -4,18 +4,8 @@ defmodule Epoxi.Queue.PipelineTest do
   setup do
     pipeline_name = :"test_pipeline_#{:erlang.unique_integer([:positive])}"
 
-    opts = [
-      name: pipeline_name,
-      batching: [
-        size: 10,
-        timeout: 5_000,
-        concurrency: 2
-      ],
-      rate_limiting: [
-        allowed_messages: 10,
-        interval: 1000
-      ]
-    ]
+    policy = Epoxi.Queue.PipelinePolicy.new(name: pipeline_name)
+    opts = Epoxi.Queue.Pipeline.build_policy_opts(policy)
 
     {:ok, _pid} =
       start_supervised({Epoxi.Queue.Pipeline, opts})
