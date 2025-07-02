@@ -10,8 +10,29 @@ defmodule Epoxi do
 
   alias Epoxi.{Email, SmtpClient}
 
-  def start_pipeline(opts) do
-    Epoxi.PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts})
+  def start_pipeline(policy) do
+    Logger.debug("Starting pipeline for policy: #{inspect(policy)}")
+    opts = Epoxi.Queue.Pipeline.build_policy_opts(policy)
+
+    case Epoxi.PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts}) do
+      {:ok, pid} ->
+        Logger.debug(
+          "Pipeline started successfully for policy: #{inspect(policy)}, PID: #{inspect(pid)}"
+        )
+
+        {:ok, pid}
+
+      {:error, {:already_started, pid}} ->
+        Logger.debug(
+          "Pipeline already running for policy: #{inspect(policy)}, PID: #{inspect(pid)}"
+        )
+
+        {:ok, pid}
+
+      {:error, reason} ->
+        Logger.error("Failed to start pipeline for policy #{inspect(policy)}: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   @doc """

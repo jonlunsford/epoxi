@@ -1,4 +1,8 @@
 defmodule Epoxi.PipelineSupervisor do
+  @moduledoc """
+  Supervisor for managing dynamic Epoxi pipelines.
+  """
+
   use DynamicSupervisor
 
   def start_link(opts) do

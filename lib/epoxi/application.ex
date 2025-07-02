@@ -20,14 +20,17 @@ defmodule Epoxi.Application do
   def start_pipelines() do
     Logger.info("Starting pipelines...")
 
-    {:ok, _pid} =
-      Epoxi.start_pipeline(
+    default_policy =
+      Epoxi.Queue.PipelinePolicy.new(
         name: :default,
-        batching: [
-          size: 50,
-          timeout: 3000,
-          concurrency: 5
-        ]
+        max_connections: 10,
+        max_retries: 5,
+        batch_size: 100,
+        batch_timeout: 1_000,
+        allowed_messages: 1000,
+        message_interval: 60_000
       )
+
+    {:ok, _pid} = Epoxi.start_pipeline(default_policy)
   end
 end

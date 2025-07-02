@@ -6,12 +6,11 @@ defmodule Epoxi.Queue.Pipeline do
   use Broadway
 
   alias Epoxi.{SmtpClient, Parsing, Email}
+  alias Epoxi.Queue.PipelinePolicy
 
-  @default_batching [
-    size: 50,
-    timeout: 5000,
-    concurrency: 10
-  ]
+  def build_policy_opts(%PipelinePolicy{} = policy) do
+    PipelinePolicy.broadway_opts(policy)
+  end
 
   def child_spec(opts) do
     id = Keyword.get(opts, :name, __MODULE__)
@@ -21,34 +20,12 @@ defmodule Epoxi.Queue.Pipeline do
       start: {__MODULE__, :start_link, [opts]},
       type: :worker,
       restart: :permanent,
-      shutdown: 500
+      shutdown: 30_000
     }
   end
 
   def start_link(opts) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    batching = Keyword.get(opts, :batching, @default_batching)
-
-    broadway_opts = [
-      name: name,
-      producer: [
-        module: {Epoxi.Queue.Producer, [poll_interval: 5_000, max_retries: 5]},
-        concurrency: 1
-      ],
-      processors: [
-        default: [concurrency: 2]
-      ],
-      batchers: [
-        pending: [
-          batch_size: batching[:size],
-          batch_timeout: batching[:timeout],
-          concurrency: batching[:concurrency]
-        ],
-        retrying: [batch_size: 10, batch_timeout: 30_000, concurrency: 2]
-      ]
-    ]
-
-    Broadway.start_link(__MODULE__, broadway_opts)
+    Broadway.start_link(__MODULE__, opts)
   end
 
   @impl true
