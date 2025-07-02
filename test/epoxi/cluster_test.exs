@@ -7,7 +7,7 @@ defmodule Epoxi.ClusterTest do
 
       node_names =
         cluster
-        |> Epoxi.Cluster.find_pool(:default)
+        |> Epoxi.Cluster.find_nodes_in_pool(:default)
         |> Enum.map(& &1.name)
 
       assert Enum.member?(node_names, Node.self())
@@ -20,10 +20,67 @@ defmodule Epoxi.ClusterTest do
         Epoxi.Cluster.new()
         |> Epoxi.Cluster.get_current_state()
 
-      nodes = Epoxi.Cluster.find_pool(cluster, :default)
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :default)
 
       assert Enum.all?(nodes, &(&1.status == :up))
       assert cluster.node_count == Enum.count(nodes)
+    end
+  end
+
+  describe "add_node/2" do
+    test "it adds nodes to the cluster, within their assigned pool" do
+      node = Epoxi.Node.new(name: :foo, ip_pool: :high)
+
+      cluster =
+        Epoxi.Cluster.init()
+        |> Epoxi.Cluster.add_node(node)
+
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :high)
+
+      assert Enum.member?(nodes, node)
+      assert cluster.node_count == 1
+    end
+
+    test "it adds nodes to the default pool if no pool is specified" do
+      node = Epoxi.Node.new(name: :bar)
+
+      cluster =
+        Epoxi.Cluster.init()
+        |> Epoxi.Cluster.add_node(node)
+
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :default)
+
+      assert Enum.member?(nodes, node)
+      assert cluster.node_count == 1
+    end
+  end
+
+  describe "remove_node/2" do
+    test "it removes nodes from the cluster" do
+      node = Epoxi.Node.new(name: :foo)
+
+      cluster =
+        Epoxi.Cluster.init()
+        |> Epoxi.Cluster.add_node(node)
+        |> Epoxi.Cluster.remove_node(node)
+
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :default)
+
+      refute Enum.member?(nodes, node)
+    end
+
+    test "it removes the node from ip_pools" do
+      node = Epoxi.Node.new(name: :foo, ip_pool: :high)
+
+      cluster =
+        Epoxi.Cluster.init()
+        |> Epoxi.Cluster.add_node(node)
+        |> Epoxi.Cluster.remove_node(node)
+
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :high)
+
+      refute Enum.member?(nodes, node)
+      assert cluster.ip_pools[:high] == %{}
     end
   end
 
@@ -47,7 +104,7 @@ defmodule Epoxi.ClusterTest do
 
     node_names =
       cluster
-      |> Epoxi.Cluster.find_pool(:default)
+      |> Epoxi.Cluster.find_nodes_in_pool(:default)
       |> Enum.map(& &1.name)
 
     assert Enum.member?(node_names, node.name)
@@ -59,9 +116,9 @@ defmodule Epoxi.ClusterTest do
 
       cluster =
         Epoxi.Cluster.new(nodes: [node])
-        |> Epoxi.Cluster.add_node_to_pool(node)
+        |> Epoxi.Cluster.add_node_to_ip_pool(node)
 
-      nodes = MapSet.to_list(cluster.pools[:high])
+      nodes = Epoxi.Cluster.find_nodes_in_pool(cluster, :high)
 
       assert nodes == [node]
     end

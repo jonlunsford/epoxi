@@ -44,7 +44,7 @@ defmodule Epoxi.Endpoint do
   defp route_to_node(emails, pool) do
     node =
       Epoxi.Cluster.init()
-      |> Epoxi.Cluster.find_pool(pool)
+      |> Epoxi.Cluster.find_nodes_in_pool(pool)
       # TODO: Use algos (round robbin, etc) to select node in pool.
       |> hd()
 
