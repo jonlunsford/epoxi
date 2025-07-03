@@ -82,8 +82,7 @@ defmodule Epoxi.Node do
         put_state(node, %{status: :up, last_seen: DateTime.utc_now()})
 
       false ->
-        {:ok, result} = erpc_call(node, Epoxi.Node, :state, [node])
-        result
+        erpc_call(node, Epoxi.Node, :state, [node])
     end
   end
 
@@ -103,7 +102,8 @@ defmodule Epoxi.Node do
     Node.self() == node_name
   end
 
-  @spec erpc_call(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) :: any()
+  @spec erpc_call(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) ::
+          any()
   defp erpc_call(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 
@@ -112,7 +112,8 @@ defmodule Epoxi.Node do
     result
   end
 
-  @spec erpc_cast(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) :: any()
+  @spec erpc_cast(target_node :: t(), mod :: module(), fun :: atom(), args :: list(any())) ::
+          any()
   defp erpc_cast(%Epoxi.Node{name: node_name}, mod, fun, args) do
     start_time = System.monotonic_time()
 

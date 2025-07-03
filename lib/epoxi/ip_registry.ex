@@ -136,7 +136,7 @@ defmodule Epoxi.IpRegistry do
   def handle_info({:nodedown, node_name, reason}, %{cluster: cluster} = state) do
     Logger.info("Node #{node_name} left cluster (reason: #{inspect(reason)}), removing IPs")
 
-    node = Epoxi.Node.from_node(node_name)
+    node = Epoxi.Node.new(name: node_name)
     new_cluster = Epoxi.Cluster.remove_node(cluster, node)
 
     {:noreply, %{state | cluster: new_cluster}}
