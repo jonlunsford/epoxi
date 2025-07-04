@@ -45,8 +45,7 @@ defmodule Epoxi.Endpoint do
     node =
       Epoxi.Cluster.init()
       |> Epoxi.Cluster.find_nodes_in_pool(pool)
-      # TODO: Use algos (round robbin, etc) to select node in pool.
-      |> hd()
+      |> Enum.random()
 
     case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
       :ok -> {200, "Messages queued in the #{pool} pool"}
