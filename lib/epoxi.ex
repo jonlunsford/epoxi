@@ -9,12 +9,13 @@ defmodule Epoxi do
   """
 
   alias Epoxi.{Email, SmtpClient}
+  alias Epoxi.Queue.{Pipeline, PipelineSupervisor}
 
   def start_pipeline(policy) do
     Logger.debug("Starting pipeline for policy: #{inspect(policy)}")
-    opts = Epoxi.Queue.Pipeline.build_policy_opts(policy)
+    opts = Pipeline.build_policy_opts(policy)
 
-    case Epoxi.PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts}) do
+    case PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts}) do
       {:ok, pid} ->
         Logger.debug(
           "Pipeline started successfully for policy: #{inspect(policy)}, PID: #{inspect(pid)}"

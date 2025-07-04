@@ -1,4 +1,4 @@
-defmodule Epoxi.PipelineSupervisor do
+defmodule Epoxi.Queue.PipelineSupervisor do
   @moduledoc """
   Supervisor for managing dynamic Epoxi pipelines.
   """
