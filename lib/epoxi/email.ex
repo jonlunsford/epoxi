@@ -9,6 +9,11 @@ defmodule Epoxi.Email do
 
   alias Epoxi.Email
 
+  @type delivery_config :: %{
+          ip: String.t(),
+          ip_pool: String.t()
+        }
+
   defstruct subject: "",
             from: "",
             reply_to: "",
@@ -24,7 +29,7 @@ defmodule Epoxi.Email do
             next_retry_at: nil,
             retry_count: 0,
             status: :pending,
-            delivery: nil,
+            delivery: %{},
             log: [],
             content_type: nil,
             headers: %{}
@@ -42,6 +47,7 @@ defmodule Epoxi.Email do
           text: String.t(),
           updated_at: DateTime.t(),
           delivered_at: DateTime.t(),
+          delivery: delivery_config(),
           next_retry_at: DateTime.t(),
           retry_count: non_neg_integer(),
           status: atom(),
