@@ -136,7 +136,7 @@ defmodule Epoxi.Node do
         # Create table if it doesn't exist
         :ets.new(:epoxi_node_pipelines, [:named_table, :public, :set])
         []
-      
+
       _table ->
         :ets.tab2list(:epoxi_node_pipelines)
         |> Enum.map(fn {_name, pipeline_info} -> pipeline_info end)
@@ -163,7 +163,9 @@ defmodule Epoxi.Node do
   @doc """
   Finds pipelines by routing key on a specific node.
   """
-  @spec find_pipelines_by_routing_key(target_node :: t(), routing_key :: String.t()) :: [pipeline_info()]
+  @spec find_pipelines_by_routing_key(target_node :: t(), routing_key :: String.t()) :: [
+          pipeline_info()
+        ]
   def find_pipelines_by_routing_key(%Epoxi.Node{} = target_node, routing_key) do
     route_call(target_node, __MODULE__, :find_pipelines_by_routing_key, [routing_key])
   end

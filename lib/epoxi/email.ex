@@ -38,11 +38,11 @@ defmodule Epoxi.Email do
           subject: String.t(),
           from: String.t(),
           reply_to: String.t(),
-          to: List.t(),
-          cc: List.t(),
-          bcc: List.t(),
-          attachments: List.t(),
-          data: Map.t(),
+          to: list(String.t()),
+          cc: list(String.t()),
+          bcc: list(String.t()),
+          attachments: list(map()),
+          data: map(),
           html: String.t(),
           text: String.t(),
           updated_at: DateTime.t(),
@@ -53,7 +53,7 @@ defmodule Epoxi.Email do
           status: atom(),
           log: [log_entry()],
           content_type: String.t(),
-          headers: Map.t()
+          headers: map()
         }
 
   @type log_entry :: %{

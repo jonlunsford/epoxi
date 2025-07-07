@@ -17,7 +17,7 @@ defmodule Epoxi.DNS.MxLookup do
   Loads name servers from the OS if none are currently loaded
   Returns a sorted list of mx records, by priority, for the specified domain
   """
-  @spec lookup(domain :: String.t(), lookup_handler :: Fun.t()) :: List.t(Tuple.t())
+  @spec lookup(domain :: String.t(), lookup_handler :: function()) :: list({non_neg_integer(), String.t()})
   def lookup(domain, lookup_handler \\ &inet_res_lookup/1) do
     with :ok <- load_ns(),
          result <- lookup_handler.(domain),

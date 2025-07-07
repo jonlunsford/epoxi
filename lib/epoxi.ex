@@ -14,13 +14,8 @@ defmodule Epoxi do
   def start_pipeline(policy) do
     Logger.debug("Starting pipeline for policy: #{inspect(policy)}")
     opts = Pipeline.build_policy_opts(policy)
-    
-    # Add routing key (policy name) and policy to the opts for registration
-    enhanced_opts = opts
-    |> Keyword.put(:routing_key, to_string(policy.name))
-    |> Keyword.put(:policy, policy)
 
-    case PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, enhanced_opts}) do
+    case PipelineSupervisor.start_child({Epoxi.Queue.Pipeline, opts}) do
       {:ok, pid} ->
         Logger.debug(
           "Pipeline started successfully for policy: #{inspect(policy)}, PID: #{inspect(pid)}"

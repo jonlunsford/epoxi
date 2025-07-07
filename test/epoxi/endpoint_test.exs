@@ -19,7 +19,9 @@ defmodule Epoxi.EndpointTest do
       conn = Epoxi.Endpoint.call(conn, [])
 
       assert conn.status == 200
-      assert conn.resp_body == "Messages queued in the default pool"
+
+      assert conn.resp_body ==
+               "Successfully routed 1000 emails in 20 batches to default pool. 20 new pipelines started."
     end
 
     @tag :distributed
@@ -30,7 +32,9 @@ defmodule Epoxi.EndpointTest do
       conn = Epoxi.Endpoint.call(conn, [])
 
       assert conn.status == 200
-      assert conn.resp_body == "Messages queued in the default pool"
+
+      assert conn.resp_body ==
+               "Successfully routed 1000 emails in 20 batches to default pool. 0 new pipelines started."
     end
   end
 end

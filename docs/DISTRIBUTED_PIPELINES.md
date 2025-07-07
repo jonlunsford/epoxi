@@ -11,6 +11,7 @@ The system provides dynamic routing of email batches to appropriate Broadway pip
 ### 1. Node Pipeline Tracking (`Epoxi.Node`)
 
 Enhanced the Node module to track running pipelines:
+
 - `pipeline_info` type for comprehensive pipeline metadata
 - Pipeline registration/unregistration functions
 - Support for local and remote pipeline discovery via RPC
@@ -19,6 +20,7 @@ Enhanced the Node module to track running pipelines:
 ### 2. Cluster-wide Pipeline Discovery (`Epoxi.Cluster`)
 
 Added cluster-wide pipeline management functions:
+
 - `find_all_pipelines/0,1` - Discover all pipelines across cluster nodes
 - `find_pipelines_by_routing_key/1,2` - Find pipelines for specific routing keys
 - `find_node_for_routing_key/1,2` - Locate optimal nodes for routing
@@ -27,6 +29,7 @@ Added cluster-wide pipeline management functions:
 ### 3. Intelligent Email Routing (`Epoxi.Email.Router`)
 
 Centralized routing module following "tell, don't ask" principles:
+
 - Automatic batch creation from email lists
 - Pipeline discovery and creation for routing keys
 - Load balancing across available nodes
@@ -36,6 +39,7 @@ Centralized routing module following "tell, don't ask" principles:
 ### 4. Pipeline Supervisor Enhancement (`Epoxi.Queue.PipelineSupervisor`)
 
 Enhanced supervisor with automatic pipeline registry management:
+
 - Automatic pipeline registration on start
 - Automatic pipeline unregistration on stop
 - Pipeline metadata extraction and storage
@@ -44,6 +48,7 @@ Enhanced supervisor with automatic pipeline registry management:
 ### 5. Pipeline Monitoring (`Epoxi.PipelineMonitor`)
 
 Comprehensive monitoring and administration capabilities:
+
 - Health checking pipelines across all nodes
 - Pipeline performance and load monitoring
 - Administrative start/stop operations
@@ -62,7 +67,7 @@ emails = [
 ]
 
 {:ok, summary} = Epoxi.Email.Router.route_emails(emails, :default)
-# => %{total_emails: 2, total_batches: 2, successful_batches: 2, 
+# => %{total_emails: 2, total_batches: 2, successful_batches: 2,
 #      failed_batches: 0, new_pipelines_started: 2}
 ```
 
@@ -135,10 +140,9 @@ policy = Epoxi.Queue.PipelinePolicy.new(
 ## Integration Points
 
 The system integrates with existing Epoxi components:
+
 - HTTP endpoints for email submission
 - SMTP server for email reception
 - Queue system for message persistence
 - Telemetry for monitoring and metrics
 - Cluster management for node coordination
-
-This architecture provides a robust foundation for distributed email processing with intelligent routing and automatic scaling capabilities.
