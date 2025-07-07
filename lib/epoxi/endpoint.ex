@@ -42,6 +42,11 @@ defmodule Epoxi.Endpoint do
   end
 
   defp route_to_node(emails, pool) do
+    batches =
+      emails
+      |> Epoxi.IpRegistry.allocate_ips(pool)
+      |> Epoxi.Email.Batch.from_emails(size: 50)
+
     node =
       Epoxi.Cluster.init()
       |> Epoxi.Cluster.find_nodes_in_pool(pool)
