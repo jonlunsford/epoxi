@@ -16,7 +16,8 @@ defmodule Epoxi.Node do
     :last_seen,
     :ip_addresses,
     ip_pool: :default,
-    status: :unknown
+    status: :unknown,
+    pipelines: []
   ]
 
   require Logger
@@ -30,7 +31,16 @@ defmodule Epoxi.Node do
           status: node_status(),
           ip_addresses: [ip_address()],
           ip_pool: atom(),
-          last_seen: Calendar.datetime()
+          last_seen: Calendar.datetime(),
+          pipelines: [pipeline_info()]
+        }
+
+  @type pipeline_info :: %{
+          name: atom(),
+          routing_key: String.t() | nil,
+          pid: pid(),
+          policy: Epoxi.Queue.PipelinePolicy.t() | nil,
+          started_at: DateTime.t()
         }
 
   def new(attrs \\ []) do
@@ -98,6 +108,66 @@ defmodule Epoxi.Node do
     end
   end
 
+  @doc """
+  Registers a pipeline on the current node.
+  """
+  @spec register_pipeline(pipeline_info()) :: :ok
+  def register_pipeline(pipeline_info) do
+    :ets.insert_new(:epoxi_node_pipelines, {pipeline_info.name, pipeline_info})
+    :ok
+  end
+
+  @doc """
+  Unregisters a pipeline from the current node.
+  """
+  @spec unregister_pipeline(atom()) :: :ok
+  def unregister_pipeline(pipeline_name) do
+    :ets.delete(:epoxi_node_pipelines, pipeline_name)
+    :ok
+  end
+
+  @doc """
+  Gets all pipelines running on the current node.
+  """
+  @spec get_pipelines() :: [pipeline_info()]
+  def get_pipelines do
+    case :ets.whereis(:epoxi_node_pipelines) do
+      :undefined ->
+        # Create table if it doesn't exist
+        :ets.new(:epoxi_node_pipelines, [:named_table, :public, :set])
+        []
+      
+      _table ->
+        :ets.tab2list(:epoxi_node_pipelines)
+        |> Enum.map(fn {_name, pipeline_info} -> pipeline_info end)
+    end
+  end
+
+  @doc """
+  Gets all pipelines running on a specific node.
+  """
+  @spec get_pipelines(target_node :: t()) :: [pipeline_info()]
+  def get_pipelines(%Epoxi.Node{} = target_node) do
+    route_call(target_node, __MODULE__, :get_pipelines, [])
+  end
+
+  @doc """
+  Finds pipelines by routing key on the current node.
+  """
+  @spec find_pipelines_by_routing_key(String.t()) :: [pipeline_info()]
+  def find_pipelines_by_routing_key(routing_key) do
+    get_pipelines()
+    |> Enum.filter(fn pipeline -> pipeline.routing_key == routing_key end)
+  end
+
+  @doc """
+  Finds pipelines by routing key on a specific node.
+  """
+  @spec find_pipelines_by_routing_key(target_node :: t(), routing_key :: String.t()) :: [pipeline_info()]
+  def find_pipelines_by_routing_key(%Epoxi.Node{} = target_node, routing_key) do
+    route_call(target_node, __MODULE__, :find_pipelines_by_routing_key, [routing_key])
+  end
+
   defp local?(%Epoxi.Node{name: node_name}) do
     Node.self() == node_name
   end
@@ -124,9 +194,11 @@ defmodule Epoxi.Node do
 
   defp put_state(%Epoxi.Node{} = node, additional_state) do
     {:ok, ips} = interfaces(node)
+    pipelines = get_pipelines()
 
     node
     |> Map.put(:ip_addresses, ips)
+    |> Map.put(:pipelines, pipelines)
     |> Map.merge(additional_state)
   end
 
