@@ -42,20 +42,19 @@ defmodule Epoxi.Endpoint do
   end
 
   defp route_to_node(emails, pool) do
-    batches =
-      emails
-      |> Epoxi.IpRegistry.allocate_ips(pool)
-      |> Epoxi.Email.Batch.from_emails(size: 50)
-
-    node =
-      Epoxi.Cluster.init()
-      |> Epoxi.Cluster.find_nodes_in_pool(pool)
-      |> Enum.random()
-
-    case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
-      :ok -> {200, "Messages queued in the #{pool} pool"}
-      {:ok, :message_sent_async} -> {200, "Messages queued in the #{pool} pool"}
-      {:error, reason} -> {400, reason}
+    case Epoxi.Email.Router.route_emails(emails, pool) do
+      {:ok, summary} ->
+        message = build_success_message(summary, pool)
+        {200, message}
+      
+      {:error, reason} ->
+        Logger.error("Failed to route emails: #{inspect(reason)}")
+        {400, "Failed to route emails: #{reason}"}
     end
+  end
+  
+  defp build_success_message(summary, pool) do
+    "Successfully routed #{summary.total_emails} emails in #{summary.total_batches} batches to #{pool} pool. " <>
+    "#{summary.new_pipelines_started} new pipelines started."
   end
 end
