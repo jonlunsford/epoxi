@@ -17,14 +17,16 @@ defmodule Epoxi.IpRegistry do
   use GenServer
   require Logger
 
-  defstruct cluster: %Epoxi.Cluster{}
+  defstruct cluster: %Epoxi.Cluster{}, ip_weights: %{}
 
   @type node_name :: atom()
   @type ip_address :: String.t()
   @type pool_name :: atom()
+  @type ip_weight :: non_neg_integer()
 
   @type t :: %__MODULE__{
-          cluster: Epoxi.Cluster.t()
+          cluster: Epoxi.Cluster.t(),
+          ip_weights: %{ip_address() => ip_weight()}
         }
 
   def start_link(opts \\ []) do
@@ -63,6 +65,42 @@ defmodule Epoxi.IpRegistry do
   @spec get_all_cluster_ips() :: [{ip_address(), node_name()}]
   def get_all_cluster_ips() do
     GenServer.call(__MODULE__, :get_all_cluster_ips)
+  end
+
+  @doc """
+  Allocate IP addresses from a pool to a list of emails.
+  Updates each email's delivery field with the assigned IP and pool.
+  Uses weighted distribution based on IP weights.
+  """
+  @spec allocate_ips([Epoxi.Email.t()], pool_name()) :: [Epoxi.Email.t()]
+  def allocate_ips(emails, pool_name) do
+    GenServer.call(__MODULE__, {:allocate_ips, emails, pool_name})
+  end
+
+  @doc """
+  Set the weight for a specific IP address.
+  Higher weights mean more emails will be assigned to this IP.
+  """
+  @spec set_ip_weight(ip_address(), ip_weight()) :: :ok
+  def set_ip_weight(ip_address, weight) do
+    GenServer.cast(__MODULE__, {:set_ip_weight, ip_address, weight})
+  end
+
+  @doc """
+  Get the weight for a specific IP address.
+  Returns 1 (default weight) if no weight is set.
+  """
+  @spec get_ip_weight(ip_address()) :: ip_weight()
+  def get_ip_weight(ip_address) do
+    GenServer.call(__MODULE__, {:get_ip_weight, ip_address})
+  end
+
+  @doc """
+  Get all IP weights for a specific pool.
+  """
+  @spec get_pool_ip_weights(pool_name()) :: %{ip_address() => ip_weight()}
+  def get_pool_ip_weights(pool_name) do
+    GenServer.call(__MODULE__, {:get_pool_ip_weights, pool_name})
   end
 
   @doc """
@@ -114,10 +152,52 @@ defmodule Epoxi.IpRegistry do
   end
 
   @impl true
+  def handle_call(
+        {:allocate_ips, emails, pool_name},
+        _from,
+        %{cluster: cluster, ip_weights: ip_weights} = state
+      ) do
+    pool_ips = Epoxi.Cluster.get_pool_ips(cluster, pool_name)
+
+    case pool_ips do
+      [] ->
+        {:reply, emails, state}
+
+      _ ->
+        weighted_ips = build_weighted_ip_list(pool_ips, ip_weights)
+        allocated_emails = distribute_ips_to_emails(emails, weighted_ips, pool_name)
+        {:reply, allocated_emails, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_ip_weight, ip_address}, _from, %{ip_weights: ip_weights} = state) do
+    weight = Map.get(ip_weights, ip_address, 1)
+    {:reply, weight, state}
+  end
+
+  @impl true
+  def handle_call(
+        {:get_pool_ip_weights, pool_name},
+        _from,
+        %{cluster: cluster, ip_weights: ip_weights} = state
+      ) do
+    pool_ips = Epoxi.Cluster.get_pool_ips(cluster, pool_name)
+    pool_weights = Map.take(ip_weights, pool_ips)
+    {:reply, pool_weights, state}
+  end
+
+  @impl true
   def handle_cast(:refresh, %{cluster: cluster} = state) do
     cur_cluster = Epoxi.Cluster.get_current_state(cluster)
     new_state = %{state | cluster: cur_cluster}
     {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_cast({:set_ip_weight, ip_address, weight}, %{ip_weights: ip_weights} = state) do
+    new_ip_weights = Map.put(ip_weights, ip_address, weight)
+    {:noreply, %{state | ip_weights: new_ip_weights}}
   end
 
   @impl true
@@ -152,5 +232,33 @@ defmodule Epoxi.IpRegistry do
   def terminate(_reason, _state) do
     :net_kernel.monitor_nodes(false)
     :ok
+  end
+
+  # Build a weighted list of IPs based on their weights
+  # Each IP appears in the list according to its weight
+  defp build_weighted_ip_list(pool_ips, ip_weights) do
+    pool_ips
+    |> Enum.flat_map(fn ip ->
+      weight = Map.get(ip_weights, ip, 1)
+      List.duplicate(ip, weight)
+    end)
+    |> Enum.shuffle()
+  end
+
+  # Distribute IPs to emails using weighted round-robin
+  defp distribute_ips_to_emails(emails, weighted_ips, pool_name) do
+    case weighted_ips do
+      [] ->
+        emails
+
+      _ ->
+        emails
+        |> Enum.with_index()
+        |> Enum.map(fn {email, index} ->
+          ip = Enum.at(weighted_ips, rem(index, length(weighted_ips)))
+          delivery_config = %{ip: ip, ip_pool: Atom.to_string(pool_name)}
+          %{email | delivery: delivery_config}
+        end)
+    end
   end
 end
