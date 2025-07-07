@@ -16,6 +16,22 @@ defmodule Epoxi.Endpoint do
   get "/ping" do
     send_resp(conn, 200, "pong!")
   end
+  
+  get "/admin/pipelines" do
+    stats = Epoxi.PipelineMonitor.get_cluster_stats()
+    send_resp(conn, 200, JSON.encode!(stats))
+  end
+  
+  get "/admin/pipelines/health" do
+    health_results = Epoxi.PipelineMonitor.health_check_all()
+    send_resp(conn, 200, JSON.encode!(health_results))
+  end
+  
+  get "/admin/pipelines/:routing_key" do
+    routing_key = conn.path_params["routing_key"]
+    health_results = Epoxi.PipelineMonitor.health_check_routing_key(routing_key)
+    send_resp(conn, 200, JSON.encode!(health_results))
+  end
 
   post "/messages" do
     {status, body} =
