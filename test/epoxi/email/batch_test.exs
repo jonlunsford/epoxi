@@ -18,6 +18,20 @@ defmodule Epoxi.Email.BatchTest do
   end
 
   describe "from_emails/1" do
+    test "creates batches with test MX lookup" do
+      emails = [
+        %Epoxi.Email{to: "user@gmail.com", delivery: %{ip: "1.2.3.4"}},
+        %Epoxi.Email{to: "user@yahoo.com", delivery: %{ip: "1.2.3.4"}}
+      ]
+
+      batches = Epoxi.Email.Batch.from_emails(emails, mx_lookup: Epoxi.DNS.TestMxLookup)
+
+      assert length(batches) == 2
+      # Test that routing keys are generated correctly
+      assert Enum.any?(batches, &(&1.routing_key =~ "gmail"))
+      assert Enum.any?(batches, &(&1.routing_key =~ "yahoo"))
+    end
+
     test "returns a list of batches, emails grouped by domain & ip" do
       # Create emails with different domains and IPs
       emails = [
@@ -28,7 +42,7 @@ defmodule Epoxi.Email.BatchTest do
         %Epoxi.Email{to: ["user2@gmail.com"], delivery: %{ip: "192.168.1.1"}}
       ]
 
-      batches = Batch.from_emails(emails)
+      batches = Batch.from_emails(emails, mx_lookup: Epoxi.DNS.TestMxLookup)
 
       # Should create 3 batches (example.com+192.168.1.1, example.com+192.168.1.2, gmail.com+192.168.1.1)
       assert length(batches) == 3
@@ -77,7 +91,7 @@ defmodule Epoxi.Email.BatchTest do
         %Epoxi.Email{to: ["user3@gmail.com"], delivery: %{ip: "192.168.1.1"}}
       ]
 
-      batches = Batch.from_emails(emails)
+      batches = Batch.from_emails(emails, mx_lookup: Epoxi.DNS.TestMxLookup)
 
       # Should create 2 batches based on the first recipient's domain
       assert length(batches) == 2
@@ -99,7 +113,7 @@ defmodule Epoxi.Email.BatchTest do
         %Epoxi.Email{to: ["user2@example.com"], delivery: %{ip: "192.168.1.1"}}
       ]
 
-      batches = Batch.from_emails(emails)
+      batches = Batch.from_emails(emails, mx_lookup: Epoxi.DNS.TestMxLookup)
 
       # Should create 2 batches - one with empty IP, one with IP
       assert length(batches) == 2

@@ -7,14 +7,18 @@ defmodule Epoxi.Email.Batch do
             size: 50,
             target_domain: "",
             ip: "",
-            ip_pool: ""
+            ip_pool: "",
+            routing_key: nil,
+            policy: nil
 
   @type t :: %__MODULE__{
           emails: [Epoxi.Email.t()],
           size: non_neg_integer(),
           target_domain: String.t(),
           ip: String.t(),
-          ip_pool: String.t()
+          ip_pool: String.t(),
+          routing_key: Epoxi.Email.RoutingKey.t() | nil,
+          policy: Epoxi.Queue.PipelinePolicy.t() | nil
         }
 
   def new(opts \\ []) do
@@ -39,27 +43,48 @@ defmodule Epoxi.Email.Batch do
   * `:size` - Maximum number of emails per batch (default: 50)
   """
   def from_emails(emails, opts) when is_list(emails) do
-    size = Keyword.get(opts, :size, 50)
+    batch_size = Keyword.get(opts, :size, 50)
+    mx_lookup = Keyword.get(opts, :mx_lookup, Epoxi.DNS.MxLookup)
 
     emails
-    |> Enum.group_by(&routing_key/1)
-    |> Enum.flat_map(fn {{domain, ip}, grouped_emails} ->
+    |> Enum.group_by(&routing_key(&1, mx_lookup))
+    |> Enum.flat_map(fn {{mx_host, ip}, grouped_emails} ->
       grouped_emails
-      |> Enum.chunk_every(size)
+      |> Enum.chunk_every(batch_size)
       |> Enum.map(fn email_chunk ->
+        routing_key = Epoxi.Email.RoutingKey.generate(mx_host, ip)
+        policy = Epoxi.ProviderPolicy.for_mx_host(mx_host)
+
         new(
           emails: email_chunk,
+          routing_key: routing_key,
           size: length(email_chunk),
-          target_domain: domain,
+          target_domain: extract_domain(hd(email_chunk)),
+          policy: policy,
           ip: ip
         )
       end)
     end)
   end
 
-  # Extract routing key (domain + ip) from an email
-  defp routing_key(%Epoxi.Email{to: to, delivery: delivery}) do
+  defp routing_key(%Epoxi.Email{to: to, delivery: delivery}, mx_lookup) do
     domain = Epoxi.Parsing.get_hostname(to)
-    {domain, delivery[:ip]}
+    mx_host = get_mx_host(domain, mx_lookup)
+    {mx_host, delivery[:ip]}
+  end
+
+  defp get_mx_host(domain, mx_lookup) do
+    case mx_lookup.lookup(domain) do
+      [first_record | _rest] ->
+        {_priority, relay} = first_record
+        String.Chars.to_string(relay)
+
+      [] ->
+        domain
+    end
+  end
+
+  defp extract_domain(%Epoxi.Email{to: to}) do
+    Epoxi.Parsing.get_hostname(to)
   end
 end
