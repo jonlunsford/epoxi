@@ -55,7 +55,7 @@ defmodule Epoxi.SmtpConfig do
   @spec for_domain(t(), Strong.t()) :: Keyword.t()
   def for_domain(%SmtpConfig{} = config, domain) do
     relay =
-      case Utils.mx_lookup(domain) do
+      case Epoxi.DNS.MxLookup.lookup(domain) do
         [first_record | _rest] ->
           {_priority, relay} = first_record
           relay
