@@ -10,9 +10,9 @@ defmodule Epoxi.Queue.PipelinePolicyTest do
       assert policy.name == :default
       assert policy.max_connections == 10
       assert policy.max_retries == 5
-      assert policy.batch_size == 100
-      assert policy.batch_timeout == 1_000
-      assert policy.allowed_messages == 1000
+      assert policy.batch_size == 10
+      assert policy.batch_timeout == 5_000
+      assert policy.allowed_messages == 100
       assert policy.message_interval == 60_000
     end
 
@@ -33,7 +33,7 @@ defmodule Epoxi.Queue.PipelinePolicyTest do
       assert policy.batch_size == 50
       assert policy.batch_timeout == 2_000
       # Unspecified values use defaults
-      assert policy.allowed_messages == 1000
+      assert policy.allowed_messages == 100
       assert policy.message_interval == 60_000
     end
 

@@ -5,9 +5,9 @@ defmodule Epoxi.Queue.PipelinePolicy do
   defstruct name: :default,
             max_connections: 10,
             max_retries: 5,
-            batch_size: 100,
-            batch_timeout: 1_000,
-            allowed_messages: 1000,
+            batch_size: 10,
+            batch_timeout: 5_000,
+            allowed_messages: 100,
             message_interval: 60_000
 
   @type t :: %__MODULE__{
