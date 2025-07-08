@@ -58,15 +58,9 @@ defmodule Epoxi.Endpoint do
   end
 
   defp route_to_node(emails, pool) do
-    case Epoxi.Email.Router.route_emails(emails, pool) do
-      {:ok, summary} ->
-        message = build_success_message(summary, pool)
-        {200, message}
-
-      {:error, reason} ->
-        Logger.error("Failed to route emails: #{inspect(reason)}")
-        {400, "Failed to route emails: #{reason}"}
-    end
+    {:ok, summary} = Epoxi.Email.Router.route_emails(emails, pool)
+    message = build_success_message(summary, pool)
+    {200, message}
   end
 
   defp build_success_message(summary, pool) do

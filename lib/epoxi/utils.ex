@@ -10,11 +10,11 @@ defmodule Epoxi.Utils do
 
   # Structs don't do enumerable and anyway the keys are already
   # atoms
-  def atomize_keys(struct = %{__struct__: _}) do
+  def atomize_keys(%{__struct__: _} = struct) do
     struct
   end
 
-  def atomize_keys(map = %{}) do
+  def atomize_keys(%{} = map) do
     map
     |> Enum.map(fn {k, v} -> {String.to_atom(k), atomize_keys(v)} end)
     |> Enum.into(%{})
