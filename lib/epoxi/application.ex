@@ -31,6 +31,8 @@ defmodule Epoxi.Application do
         message_interval: 60_000
       )
 
-    {:ok, _pid} = Epoxi.start_pipeline(default_policy)
+    default_opts = Epoxi.Queue.Pipeline.build_policy_opts(default_policy)
+
+    {:ok, _pid} = Epoxi.start_pipeline(default_opts)
   end
 end

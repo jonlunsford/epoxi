@@ -27,6 +27,14 @@ defmodule Epoxi.Queue.PipelinePolicy do
     struct(PipelinePolicy, opts)
   end
 
+  @spec broadway_opts(Epoxi.Email.Batch.t()) :: keyword()
+  def broadway_opts(%Epoxi.Email.Batch{policy: policy, routing_key: routing_key}) do
+    name = String.to_atom(routing_key)
+
+    broadway_opts(policy)
+    |> Keyword.put(:name, name)
+  end
+
   @spec broadway_opts(PipelinePolicy.t()) :: keyword()
   def broadway_opts(%PipelinePolicy{name: name} = policy) do
     [

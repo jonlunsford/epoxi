@@ -89,7 +89,7 @@ defmodule Epoxi.ProviderPolicy do
       batch_size: 5,
       batch_timeout: 5_000,
       allowed_messages: 50,
-      message_interval: 120_000
+      message_interval: 5000
     )
   end
 end

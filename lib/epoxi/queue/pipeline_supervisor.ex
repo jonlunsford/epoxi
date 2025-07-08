@@ -78,19 +78,22 @@ defmodule Epoxi.Queue.PipelineSupervisor do
 
   defp extract_pipeline_info(spec, pid) do
     name = extract_pipeline_name(spec)
-    routing_key = extract_routing_key(spec)
-    policy = extract_policy(spec)
 
+    # FIXME - policy this isn't getting passed properly
     %{
       name: name,
-      routing_key: routing_key,
+      routing_key: name,
       pid: pid,
-      policy: policy,
+      policy: nil,
       started_at: DateTime.utc_now()
     }
   end
 
-  defp extract_pipeline_name({Epoxi.Queue.Pipeline, opts}) do
+  defp extract_pipeline_name({Epoxi.Queue.Pipeline, %{name: name}}) do
+    name
+  end
+
+  defp extract_pipeline_name({Epoxi.Queue.Pipeline, opts}) when is_list(opts) do
     Keyword.get(opts, :name, :default)
   end
 
@@ -99,18 +102,6 @@ defmodule Epoxi.Queue.PipelineSupervisor do
   end
 
   defp extract_pipeline_name(_), do: :default
-
-  defp extract_routing_key({Epoxi.Queue.Pipeline, opts}) do
-    Keyword.get(opts, :routing_key)
-  end
-
-  defp extract_routing_key(_), do: nil
-
-  defp extract_policy({Epoxi.Queue.Pipeline, opts}) do
-    Keyword.get(opts, :policy)
-  end
-
-  defp extract_policy(_), do: nil
 
   defp find_pipeline_by_pid(pid) do
     case :ets.whereis(:epoxi_node_pipelines) do
