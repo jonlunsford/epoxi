@@ -108,7 +108,9 @@ defmodule Epoxi.NodeRegistry do
   @doc """
   Allocate IP addresses to emails.
   """
-  @spec allocate_ips([Epoxi.Email.t()], pool_name(), IpManager.allocation_strategy()) :: [Epoxi.Email.t()]
+  @spec allocate_ips([Epoxi.Email.t()], pool_name(), IpManager.allocation_strategy()) :: [
+          Epoxi.Email.t()
+        ]
   def allocate_ips(emails, pool_name, strategy \\ :weighted) do
     GenServer.call(__MODULE__, {:allocate_ips, emails, pool_name, strategy})
   end
@@ -214,7 +216,7 @@ defmodule Epoxi.NodeRegistry do
   @doc """
   Select optimal node for starting a new pipeline.
   """
-  @spec select_optimal_node_for_pipeline(pool_name(), PipelineManager.selection_strategy()) :: 
+  @spec select_optimal_node_for_pipeline(pool_name(), PipelineManager.selection_strategy()) ::
           {:ok, Node.t()} | {:error, :no_nodes_available}
   def select_optimal_node_for_pipeline(ip_pool, strategy \\ :least_pipelines) do
     GenServer.call(__MODULE__, {:select_optimal_node_for_pipeline, ip_pool, strategy})
@@ -256,7 +258,7 @@ defmodule Epoxi.NodeRegistry do
     node = Node.from_node(node_name)
     updated_cluster = NodeManager.register_node(state.cluster, node)
     updated_metadata = Map.put(state.node_metadata, node_name, metadata)
-    
+
     new_state = %{state | cluster: updated_cluster, node_metadata: updated_metadata}
     {:reply, :ok, new_state}
   end
@@ -266,7 +268,7 @@ defmodule Epoxi.NodeRegistry do
     node = Node.new(name: node_name)
     updated_cluster = NodeManager.unregister_node(state.cluster, node)
     updated_metadata = Map.delete(state.node_metadata, node_name)
-    
+
     new_state = %{state | cluster: updated_cluster, node_metadata: updated_metadata}
     {:reply, :ok, new_state}
   end
@@ -299,7 +301,9 @@ defmodule Epoxi.NodeRegistry do
 
   @impl true
   def handle_call({:allocate_ips, emails, pool_name, strategy}, _from, state) do
-    allocated_emails = IpManager.allocate_ips(emails, state.cluster, state.ip_weights, pool_name, strategy)
+    allocated_emails =
+      IpManager.allocate_ips(emails, state.cluster, state.ip_weights, pool_name, strategy)
+
     {:reply, allocated_emails, state}
   end
 
@@ -398,7 +402,7 @@ defmodule Epoxi.NodeRegistry do
   def handle_cast({:update_node_metadata, node_name, metadata}, state) do
     # Update metadata in state only - cluster doesn't store metadata
     updated_metadata = Map.put(state.node_metadata, node_name, metadata)
-    
+
     new_state = %{state | node_metadata: updated_metadata}
     {:noreply, new_state}
   end
@@ -415,10 +419,10 @@ defmodule Epoxi.NodeRegistry do
   @impl true
   def handle_info({:nodeup, node_name, _info}, state) do
     Logger.info("Node #{node_name} joined cluster, updating registry")
-    
+
     node = Node.from_node(node_name)
     updated_cluster = NodeManager.register_node(state.cluster, node)
-    
+
     new_state = %{state | cluster: updated_cluster}
     {:noreply, new_state}
   end
@@ -426,11 +430,11 @@ defmodule Epoxi.NodeRegistry do
   @impl true
   def handle_info({:nodedown, node_name, reason}, state) do
     Logger.info("Node #{node_name} left cluster (reason: #{inspect(reason)}), updating registry")
-    
+
     node = Node.new(name: node_name)
     updated_cluster = NodeManager.unregister_node(state.cluster, node)
     updated_metadata = Map.delete(state.node_metadata, node_name)
-    
+
     new_state = %{state | cluster: updated_cluster, node_metadata: updated_metadata}
     {:noreply, new_state}
   end

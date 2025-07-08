@@ -13,7 +13,6 @@ defmodule Epoxi.Email.Router do
 
   alias Epoxi.{Cluster, Node}
   alias Epoxi.Email.Batch
-  alias Epoxi.Queue.PipelinePolicy
 
   @type routing_result :: {:ok, routing_summary()} | {:error, String.t()}
   @type routing_summary :: %{
@@ -50,12 +49,10 @@ defmodule Epoxi.Email.Router do
   @spec route_emails([Epoxi.Email.t()], atom(), keyword()) :: routing_result()
   def route_emails(emails, ip_pool, opts \\ []) do
     batch_size = Keyword.get(opts, :batch_size, 50)
-    auto_create = Keyword.get(opts, :auto_create_pipelines, true)
-    fallback = Keyword.get(opts, :fallback_routing, true)
 
     with {:ok, batches} <- prepare_batches(emails, ip_pool, batch_size),
          {:ok, cluster} <- get_cluster_state(),
-         {:ok, results} <- route_batches(batches, cluster, ip_pool, auto_create, fallback) do
+         {:ok, results} <- route_batches(batches, cluster, ip_pool) do
       summary = summarize_routing_results(batches, results)
       {:ok, summary}
     else
@@ -98,62 +95,34 @@ defmodule Epoxi.Email.Router do
     {:ok, cluster}
   end
 
-  defp route_batches(batches, cluster, ip_pool, auto_create, fallback) do
+  defp route_batches(batches, cluster, ip_pool) do
     results =
       batches
       |> Enum.map(fn batch ->
-        route_single_batch(batch, cluster, ip_pool, auto_create, fallback)
+        route_single_batch(batch, cluster, ip_pool)
       end)
 
     {:ok, results}
   end
 
-  defp route_single_batch(batch, cluster, ip_pool, auto_create, fallback) do
-    case find_pipeline_node(batch.routing_key, cluster) do
+  defp route_single_batch(batch, cluster, ip_pool) do
+    case create_pipeline_for_batch(batch, cluster, ip_pool) do
       {:ok, node} ->
-        enqueue_batch_to_node(batch, node)
+        result = enqueue_batch_to_node(batch, node)
+        %{result | pipeline_created: true}
 
-      {:error, :not_found} when auto_create ->
-        case create_pipeline_for_batch(batch, cluster, ip_pool) do
-          {:ok, node} ->
-            result = enqueue_batch_to_node(batch, node)
-            %{result | pipeline_created: true}
-
-          {:error, _reason} when fallback ->
-            fallback_route_batch(batch, cluster, ip_pool)
-
-          {:error, reason} ->
-            %{success: false, error: reason, batch: batch}
-        end
-
-      {:error, :not_found} when fallback ->
+      {:error, _reason} ->
         fallback_route_batch(batch, cluster, ip_pool)
-
-      {:error, reason} ->
-        %{success: false, error: reason, batch: batch}
     end
-  end
-
-  defp find_pipeline_node(routing_key, _cluster) do
-    Epoxi.NodeRegistry.find_node_for_routing_key(routing_key)
   end
 
   defp create_pipeline_for_batch(batch, cluster, ip_pool) do
     with {:ok, node} <- select_node_for_new_pipeline(cluster, ip_pool),
-         {:ok, policy} <- create_policy_for_batch(batch),
-         {:ok, _pid} <- start_pipeline_on_node(node, policy) do
-      Logger.info(
-        "Started new pipeline for routing key: #{batch.routing_key} on node: #{node.name}"
-      )
-
+         {:ok, _pid} <- start_pipeline_on_node(node, batch) do
       {:ok, node}
     else
       error ->
-        Logger.warning(
-          "Failed to create pipeline for routing key #{batch.routing_key}: #{inspect(error)}"
-        )
-
-        error
+        {:error, error}
     end
   end
 
@@ -164,28 +133,15 @@ defmodule Epoxi.Email.Router do
     end
   end
 
-  defp create_policy_for_batch(batch) do
-    policy =
-      batch.policy ||
-        PipelinePolicy.new(
-          name: String.to_atom(batch.routing_key),
-          max_connections: 5,
-          max_retries: 3,
-          batch_size: 50,
-          batch_timeout: 5_000,
-          allowed_messages: 1000,
-          message_interval: 60_000
-        )
-
-    {:ok, policy}
-  end
-
-  defp start_pipeline_on_node(node, policy) do
-    Node.route_call(node, Epoxi, :start_pipeline, [policy])
+  defp start_pipeline_on_node(node, batch) do
+    opts = Epoxi.Queue.Pipeline.build_policy_opts(batch)
+    Node.route_call(node, Epoxi, :start_pipeline, [opts])
   end
 
   defp enqueue_batch_to_node(batch, node) do
-    case Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, batch.emails]) do
+    inbox = String.to_atom("#{batch.routing_key}_inbox")
+
+    case Node.route_cast(node, Epoxi.Queue, :enqueue_many, [inbox, batch.emails]) do
       :ok ->
         %{success: true, batch: batch, node: node.name, pipeline_created: false}
 

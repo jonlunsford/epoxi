@@ -1,6 +1,5 @@
 defmodule Epoxi.PipelineMonitorTest do
   use ExUnit.Case, async: false
-
   alias Epoxi.PipelineMonitor
   alias Epoxi.Queue.PipelinePolicy
 
