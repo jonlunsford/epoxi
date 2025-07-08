@@ -71,15 +71,15 @@ defmodule Epoxi.Email.Router do
   """
   @spec find_node_for_routing_key(String.t()) :: {:ok, Node.t()} | {:error, :not_found}
   def find_node_for_routing_key(routing_key) do
-    Cluster.find_node_for_routing_key(routing_key)
+    Epoxi.NodeRegistry.find_node_for_routing_key(routing_key)
   end
 
   @doc """
   Gets statistics about pipeline distribution across the cluster.
   """
-  @spec get_pipeline_stats() :: Cluster.pipeline_stats()
+  @spec get_pipeline_stats() :: map()
   def get_pipeline_stats do
-    Cluster.get_pipeline_stats()
+    Epoxi.NodeRegistry.get_pipeline_stats()
   end
 
   # Private implementation functions
@@ -87,7 +87,7 @@ defmodule Epoxi.Email.Router do
   defp prepare_batches(emails, ip_pool, batch_size) do
     batches =
       emails
-      |> Epoxi.IpRegistry.allocate_ips(ip_pool)
+      |> Epoxi.NodeRegistry.allocate_ips(ip_pool)
       |> Batch.from_emails(size: batch_size)
 
     {:ok, batches}
@@ -134,8 +134,8 @@ defmodule Epoxi.Email.Router do
     end
   end
 
-  defp find_pipeline_node(routing_key, cluster) do
-    Cluster.find_node_for_routing_key(cluster, routing_key)
+  defp find_pipeline_node(routing_key, _cluster) do
+    Epoxi.NodeRegistry.find_node_for_routing_key(routing_key)
   end
 
   defp create_pipeline_for_batch(batch, cluster, ip_pool) do
@@ -157,15 +157,10 @@ defmodule Epoxi.Email.Router do
     end
   end
 
-  defp select_node_for_new_pipeline(cluster, ip_pool) do
-    case Cluster.find_nodes_in_pool(cluster, ip_pool) do
-      [] ->
-        {:error, "No nodes available in pool #{ip_pool}"}
-
-      nodes ->
-        # Select node with least pipelines for load balancing
-        node = Enum.min_by(nodes, fn node -> length(node.pipelines) end)
-        {:ok, node}
+  defp select_node_for_new_pipeline(_cluster, ip_pool) do
+    case Epoxi.NodeRegistry.select_optimal_node_for_pipeline(ip_pool, :least_pipelines) do
+      {:ok, node} -> {:ok, node}
+      {:error, :no_nodes_available} -> {:error, "No nodes available in pool #{ip_pool}"}
     end
   end
 

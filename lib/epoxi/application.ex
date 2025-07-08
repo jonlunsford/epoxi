@@ -9,7 +9,7 @@ defmodule Epoxi.Application do
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
       {Epoxi.Queue.PipelineSupervisor, []},
-      {Epoxi.IpRegistry, []},
+      {Epoxi.NodeRegistry, []},
       {Task, fn -> start_pipelines() end},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]

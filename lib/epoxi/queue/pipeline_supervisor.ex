@@ -50,7 +50,7 @@ defmodule Epoxi.Queue.PipelineSupervisor do
   defp register_pipeline_with_node(spec, pid) do
     try do
       pipeline_info = extract_pipeline_info(spec, pid)
-      Epoxi.Node.register_pipeline(pipeline_info)
+      Epoxi.NodeRegistry.register_pipeline(Node.self(), pipeline_info)
 
       Logger.debug("Registered pipeline #{pipeline_info.name} with node registry")
     rescue
@@ -64,7 +64,7 @@ defmodule Epoxi.Queue.PipelineSupervisor do
       # Find the pipeline by PID and unregister it
       case find_pipeline_by_pid(pid) do
         {:ok, pipeline_name} ->
-          Epoxi.Node.unregister_pipeline(pipeline_name)
+          Epoxi.NodeRegistry.unregister_pipeline(Node.self(), pipeline_name)
           Logger.debug("Unregistered pipeline #{pipeline_name} from node registry")
 
         :not_found ->
@@ -118,14 +118,18 @@ defmodule Epoxi.Queue.PipelineSupervisor do
         :not_found
 
       _table ->
-        pipelines = :ets.tab2list(:epoxi_node_pipelines)
+        find_pipeline_in_table(pid)
+    end
+  end
 
-        case Enum.find(pipelines, fn {_name, pipeline_info} ->
-               pipeline_info.pid == pid
-             end) do
-          {name, _pipeline_info} -> {:ok, name}
-          nil -> :not_found
-        end
+  defp find_pipeline_in_table(pid) do
+    pipelines = :ets.tab2list(:epoxi_node_pipelines)
+
+    case Enum.find(pipelines, fn {_name, pipeline_info} ->
+           pipeline_info.pid == pid
+         end) do
+      {name, _pipeline_info} -> {:ok, name}
+      nil -> :not_found
     end
   end
 end

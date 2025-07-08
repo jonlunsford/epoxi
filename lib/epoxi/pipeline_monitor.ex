@@ -33,10 +33,7 @@ defmodule Epoxi.PipelineMonitor do
   """
   @spec health_check_all() :: [health_check_result()]
   def health_check_all do
-    cluster = Cluster.init()
-
-    cluster
-    |> Cluster.find_all_pipelines()
+    Epoxi.NodeRegistry.find_all_pipelines()
     |> Enum.flat_map(fn {node_name, pipelines} ->
       Enum.map(pipelines, fn pipeline_info ->
         health_check_pipeline(node_name, pipeline_info)
@@ -49,10 +46,7 @@ defmodule Epoxi.PipelineMonitor do
   """
   @spec health_check_routing_key(String.t()) :: [health_check_result()]
   def health_check_routing_key(routing_key) do
-    cluster = Cluster.init()
-
-    cluster
-    |> Cluster.find_pipelines_by_routing_key(routing_key)
+    Epoxi.NodeRegistry.find_pipelines_by_routing_key(routing_key)
     |> Enum.flat_map(fn {node_name, pipelines} ->
       Enum.map(pipelines, fn pipeline_info ->
         health_check_pipeline(node_name, pipeline_info)
@@ -64,7 +58,7 @@ defmodule Epoxi.PipelineMonitor do
   Gets comprehensive statistics about all pipelines in the cluster.
   """
   @spec get_cluster_stats() :: %{
-          pipeline_stats: Cluster.pipeline_stats(),
+          pipeline_stats: map(),
           health_summary: %{
             healthy: non_neg_integer(),
             unhealthy: non_neg_integer(),
@@ -75,7 +69,7 @@ defmodule Epoxi.PipelineMonitor do
         }
   def get_cluster_stats do
     health_results = health_check_all()
-    pipeline_stats = Cluster.get_pipeline_stats()
+    pipeline_stats = Epoxi.NodeRegistry.get_pipeline_stats()
 
     health_summary = summarize_health(health_results)
     routing_distribution = analyze_routing_distribution(health_results)
@@ -95,9 +89,7 @@ defmodule Epoxi.PipelineMonitor do
   @spec start_pipeline_optimal(PipelinePolicy.t(), atom()) ::
           {:ok, {atom(), pid()}} | {:error, String.t()}
   def start_pipeline_optimal(policy, ip_pool) do
-    cluster = Cluster.init()
-
-    case find_optimal_node(cluster, ip_pool) do
+    case Epoxi.NodeRegistry.select_optimal_node_for_pipeline(ip_pool, :least_pipelines) do
       {:ok, node} ->
         case Node.route_call(node, Epoxi, :start_pipeline, [policy]) do
           {:ok, pid} ->
@@ -108,8 +100,8 @@ defmodule Epoxi.PipelineMonitor do
             {:error, "Failed to start pipeline: #{inspect(reason)}"}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, :no_nodes_available} ->
+        {:error, "No nodes available in pool #{ip_pool}"}
     end
   end
 
@@ -145,11 +137,11 @@ defmodule Epoxi.PipelineMonitor do
            %{moved: non_neg_integer(), started: non_neg_integer(), stopped: non_neg_integer()}}
           | {:error, String.t()}
   def rebalance_cluster(ip_pool) do
-    cluster = Cluster.init()
     health_results = health_check_all()
+    pool_nodes = Epoxi.NodeRegistry.list_nodes_in_pool(ip_pool)
 
     # Find overloaded and underloaded nodes
-    {overloaded, underloaded} = identify_load_imbalance(health_results, cluster, ip_pool)
+    {overloaded, underloaded} = identify_load_imbalance(health_results, pool_nodes)
 
     moves = plan_rebalancing_moves(overloaded, underloaded)
 
@@ -231,17 +223,6 @@ defmodule Epoxi.PipelineMonitor do
     |> Map.new()
   end
 
-  defp find_optimal_node(cluster, ip_pool) do
-    case Cluster.find_nodes_in_pool(cluster, ip_pool) do
-      [] ->
-        {:error, "No nodes available in pool #{ip_pool}"}
-
-      nodes ->
-        # Select node with least pipelines
-        optimal_node = Enum.min_by(nodes, fn node -> length(node.pipelines) end)
-        {:ok, optimal_node}
-    end
-  end
 
   defp stop_pipeline_on_node(node_name, pid) when is_pid(pid) do
     try do
@@ -262,16 +243,15 @@ defmodule Epoxi.PipelineMonitor do
 
   defp stop_pipeline_on_node(_node_name, _pid), do: {:error, "Invalid PID"}
 
-  defp identify_load_imbalance(health_results, cluster, ip_pool) do
+  defp identify_load_imbalance(health_results, pool_nodes) do
     load_distribution = analyze_load_distribution(health_results)
 
-    pool_nodes =
-      Cluster.find_nodes_in_pool(cluster, ip_pool) |> Enum.map(& &1.name) |> MapSet.new()
+    pool_node_names = pool_nodes |> Enum.map(& &1.name) |> MapSet.new()
 
     # Filter to only nodes in the specified pool
     pool_loads =
       load_distribution
-      |> Enum.filter(fn {node, _load} -> node in pool_nodes end)
+      |> Enum.filter(fn {node, _load} -> node in pool_node_names end)
 
     if length(pool_loads) < 2 do
       {[], []}
