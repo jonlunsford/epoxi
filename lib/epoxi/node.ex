@@ -29,7 +29,7 @@ defmodule Epoxi.Node do
           emails_queued: non_neg_integer(),
           name: atom(),
           status: node_status(),
-          ip_addresses: [ip_address()],
+          ip_addresses: [ip_address()] | nil,
           ip_pool: atom(),
           last_seen: Calendar.datetime(),
           pipelines: [pipeline_info()]
@@ -108,23 +108,6 @@ defmodule Epoxi.Node do
     end
   end
 
-  @doc """
-  Registers a pipeline on the current node.
-  """
-  @spec register_pipeline(pipeline_info()) :: :ok
-  def register_pipeline(pipeline_info) do
-    :ets.insert_new(:epoxi_node_pipelines, {pipeline_info.name, pipeline_info})
-    :ok
-  end
-
-  @doc """
-  Unregisters a pipeline from the current node.
-  """
-  @spec unregister_pipeline(atom()) :: :ok
-  def unregister_pipeline(pipeline_name) do
-    :ets.delete(:epoxi_node_pipelines, pipeline_name)
-    :ok
-  end
 
   @doc """
   Gets all pipelines running on the current node.

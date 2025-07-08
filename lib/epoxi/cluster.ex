@@ -18,12 +18,6 @@ defmodule Epoxi.Cluster do
 
   @type ip_address :: String.t()
   @type pool_name :: atom()
-  @type pipeline_stats :: %{
-          total_pipelines: non_neg_integer(),
-          nodes_with_pipelines: non_neg_integer(),
-          average_pipelines_per_node: float(),
-          pipeline_distribution: %{atom() => non_neg_integer()}
-        }
   @type t :: %__MODULE__{
           node_count: non_neg_integer(),
           nodes: [Epoxi.Node.t()],
@@ -161,128 +155,13 @@ defmodule Epoxi.Cluster do
   @spec node_count(cluster :: t()) :: non_neg_integer()
   def node_count(%Cluster{nodes: nodes}), do: length(nodes)
 
-  @doc """
-  Finds all pipelines running across the cluster.
 
-  Returns a map where keys are node names and values are lists of pipeline_info.
-  """
-  @spec find_all_pipelines(cluster :: t()) :: %{atom() => [Epoxi.Node.pipeline_info()]}
-  def find_all_pipelines(%Cluster{nodes: nodes}) do
-    nodes
-    |> Enum.map(fn node ->
-      pipelines = Epoxi.Node.get_pipelines(node)
-      {node.name, pipelines}
-    end)
-    |> Map.new()
-  end
 
-  @doc """
-  Finds all pipelines running across the cluster (using current cluster state).
-  """
-  @spec find_all_pipelines() :: %{atom() => [Epoxi.Node.pipeline_info()]}
-  def find_all_pipelines do
-    init()
-    |> find_all_pipelines()
-  end
 
-  @doc """
-  Finds pipelines by routing key across the cluster.
 
-  Returns a map where keys are node names and values are lists of matching pipelines.
-  """
-  @spec find_pipelines_by_routing_key(cluster :: t(), String.t()) :: %{
-          atom() => [Epoxi.Node.pipeline_info()]
-        }
-  def find_pipelines_by_routing_key(%Cluster{nodes: nodes}, routing_key) do
-    nodes
-    |> Enum.map(fn node ->
-      pipelines = Epoxi.Node.find_pipelines_by_routing_key(node, routing_key)
-      {node.name, pipelines}
-    end)
-    |> Enum.reject(fn {_node_name, pipelines} -> Enum.empty?(pipelines) end)
-    |> Map.new()
-  end
 
-  @doc """
-  Finds pipelines by routing key across the cluster (using current cluster state).
-  """
-  @spec find_pipelines_by_routing_key(String.t()) :: %{atom() => [Epoxi.Node.pipeline_info()]}
-  def find_pipelines_by_routing_key(routing_key) do
-    init()
-    |> find_pipelines_by_routing_key(routing_key)
-  end
 
-  @doc """
-  Finds a node that can handle a specific routing key.
 
-  Returns the first node found that has a pipeline for the routing key.
-  """
-  @spec find_node_for_routing_key(cluster :: t(), String.t()) ::
-          {:ok, Epoxi.Node.t()} | {:error, :not_found}
-  def find_node_for_routing_key(%Cluster{nodes: nodes}, routing_key) do
-    case Enum.find(nodes, fn node ->
-           pipelines = Epoxi.Node.find_pipelines_by_routing_key(node, routing_key)
-           not Enum.empty?(pipelines)
-         end) do
-      nil -> {:error, :not_found}
-      node -> {:ok, node}
-    end
-  end
-
-  @doc """
-  Finds a node that can handle a specific routing key (using current cluster state).
-  """
-  @spec find_node_for_routing_key(String.t()) :: {:ok, Epoxi.Node.t()} | {:error, :not_found}
-  def find_node_for_routing_key(routing_key) do
-    init()
-    |> find_node_for_routing_key(routing_key)
-  end
-
-  @doc """
-  Gets pipeline statistics across the cluster.
-
-  Returns statistics about pipeline distribution and load.
-  """
-  @spec get_pipeline_stats(cluster :: t()) :: pipeline_stats()
-  def get_pipeline_stats(%Cluster{} = cluster) do
-    pipeline_map = find_all_pipelines(cluster)
-
-    total_pipelines =
-      pipeline_map
-      |> Map.values()
-      |> List.flatten()
-      |> length()
-
-    nodes_with_pipelines =
-      pipeline_map
-      |> Enum.count(fn {_node, pipelines} -> not Enum.empty?(pipelines) end)
-
-    node_count = node_count(cluster)
-
-    average_pipelines_per_node =
-      if node_count > 0, do: total_pipelines / node_count, else: 0.0
-
-    pipeline_distribution =
-      pipeline_map
-      |> Enum.map(fn {node_name, pipelines} -> {node_name, length(pipelines)} end)
-      |> Map.new()
-
-    %{
-      total_pipelines: total_pipelines,
-      nodes_with_pipelines: nodes_with_pipelines,
-      average_pipelines_per_node: average_pipelines_per_node,
-      pipeline_distribution: pipeline_distribution
-    }
-  end
-
-  @doc """
-  Gets pipeline statistics across the cluster (using current cluster state).
-  """
-  @spec get_pipeline_stats() :: pipeline_stats()
-  def get_pipeline_stats do
-    init()
-    |> get_pipeline_stats()
-  end
 
   defp ensure_ip_pool(%Epoxi.Node{ip_pool: nil} = node) do
     %{node | ip_pool: :default}
