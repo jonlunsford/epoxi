@@ -49,22 +49,31 @@ defmodule Epoxi.Email.Batch do
     emails
     |> Enum.group_by(&routing_key(&1, mx_lookup))
     |> Enum.flat_map(fn {{mx_host, ip}, grouped_emails} ->
-      grouped_emails
-      |> Enum.chunk_every(batch_size)
-      |> Enum.map(fn email_chunk ->
-        routing_key = Epoxi.Email.RoutingKey.generate(mx_host, ip)
-        policy = Epoxi.ProviderPolicy.for_mx_host(mx_host)
-
-        new(
-          emails: email_chunk,
-          routing_key: routing_key,
-          size: length(email_chunk),
-          target_domain: extract_domain(hd(email_chunk)),
-          policy: policy,
-          ip: ip
-        )
-      end)
+      create_batches_for_group(grouped_emails, mx_host, ip, batch_size)
     end)
+  end
+
+  defp create_batches_for_group(emails, mx_host, ip, batch_size) do
+    routing_key = Epoxi.Email.RoutingKey.generate(mx_host, ip)
+    policy = Epoxi.ProviderPolicy.for_mx_host(mx_host)
+    target_domain = extract_domain_from_emails(emails)
+
+    emails
+    |> Enum.chunk_every(batch_size)
+    |> Enum.map(fn email_chunk ->
+      new(
+        emails: email_chunk,
+        routing_key: routing_key,
+        size: length(email_chunk),
+        target_domain: target_domain,
+        policy: policy,
+        ip: ip
+      )
+    end)
+  end
+
+  defp extract_domain_from_emails([first_email | _rest]) do
+    extract_domain(first_email)
   end
 
   defp routing_key(%Epoxi.Email{to: to, delivery: delivery}, mx_lookup) do
