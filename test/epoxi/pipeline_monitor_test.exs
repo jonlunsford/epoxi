@@ -1,7 +1,7 @@
 defmodule Epoxi.PipelineMonitorTest do
   use ExUnit.Case, async: false
 
-  alias Epoxi.{PipelineMonitor, Node}
+  alias Epoxi.PipelineMonitor
   alias Epoxi.Queue.PipelinePolicy
 
   setup do
@@ -28,7 +28,7 @@ defmodule Epoxi.PipelineMonitorTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline_info)
+      Epoxi.NodeRegistry.register_pipeline(:nonode@nohost, pipeline_info)
 
       health_results = PipelineMonitor.health_check_all()
 
@@ -64,7 +64,7 @@ defmodule Epoxi.PipelineMonitorTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline_info)
+      Epoxi.NodeRegistry.register_pipeline(:nonode@nohost, pipeline_info)
 
       health_results = PipelineMonitor.health_check_routing_key("test_specific_routing_key")
 
@@ -94,7 +94,7 @@ defmodule Epoxi.PipelineMonitorTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline_info)
+      Epoxi.NodeRegistry.register_pipeline(:nonode@nohost, pipeline_info)
 
       stats = PipelineMonitor.get_cluster_stats()
 

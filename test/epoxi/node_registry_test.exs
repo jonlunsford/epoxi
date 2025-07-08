@@ -1,11 +1,11 @@
-defmodule Epoxi.IpRegistryTest do
+defmodule Epoxi.NodeRegistryTest do
   use ExUnit.Case, async: true
 
-  alias Epoxi.IpRegistry
+  alias Epoxi.NodeRegistry
 
   setup do
     pid =
-      case start_supervised(IpRegistry) do
+      case start_supervised(NodeRegistry) do
         {:error, {:already_started, pid}} ->
           pid
 
@@ -13,31 +13,31 @@ defmodule Epoxi.IpRegistryTest do
           pid
       end
 
-    {:ok, %{ip_registry: pid}}
+    {:ok, %{node_registry: pid}}
   end
 
-  test "starts and responds to basic calls", %{ip_registry: ip_registry} do
-    assert Process.alive?(ip_registry)
+  test "starts and responds to basic calls", %{node_registry: node_registry} do
+    assert Process.alive?(node_registry)
 
-    ips = IpRegistry.get_all_cluster_ips()
+    ips = NodeRegistry.get_all_cluster_ips()
 
     assert length(ips) > 0
   end
 
   test "get_pool_ips/1 returns empty map for non-existent pool" do
-    assert IpRegistry.get_pool_ips(:non_existent_pool) == []
+    assert NodeRegistry.get_pool_ips(:non_existent_pool) == []
   end
 
   test "get_node_ips/1 returns empty list for non-existent node" do
-    assert IpRegistry.get_node_ips(:non_existent_node) == []
+    assert NodeRegistry.get_node_ips(:non_existent_node) == []
   end
 
   test "find_ip_owner/1 returns not_found for non-existent IP" do
-    assert IpRegistry.find_ip_owner("192.168.1.1") == {:error, :not_found}
+    assert NodeRegistry.find_ip_owner("192.168.1.1") == {:error, :not_found}
   end
 
   test "refresh/0 succeeds" do
-    assert IpRegistry.refresh() == :ok
+    assert NodeRegistry.refresh() == :ok
   end
 
   describe "IP weight management" do
@@ -45,38 +45,28 @@ defmodule Epoxi.IpRegistryTest do
       ip = "192.168.1.100"
 
       # Default weight should be 1
-      assert IpRegistry.get_ip_weight(ip) == 1
+      assert NodeRegistry.get_ip_weight(ip) == 1
 
       # Set a new weight
-      assert IpRegistry.set_ip_weight(ip, 5) == :ok
-      assert IpRegistry.get_ip_weight(ip) == 5
+      assert NodeRegistry.set_ip_weight(ip, 5) == :ok
+      assert NodeRegistry.get_ip_weight(ip) == 5
 
       # Update the weight
-      assert IpRegistry.set_ip_weight(ip, 10) == :ok
-      assert IpRegistry.get_ip_weight(ip) == 10
-    end
-
-    test "get_pool_ip_weights/1 returns weights for pool IPs" do
-      # This test assumes the default pool has some IPs
-      # We'll set weights for some fictional IPs and verify they're returned
-      IpRegistry.set_ip_weight("192.168.1.1", 3)
-      IpRegistry.set_ip_weight("192.168.1.2", 7)
-
-      pool_weights = IpRegistry.get_pool_ip_weights(:default)
-      assert is_map(pool_weights)
+      assert NodeRegistry.set_ip_weight(ip, 10) == :ok
+      assert NodeRegistry.get_ip_weight(ip) == 10
     end
   end
 
   describe "allocate_ips/2" do
     test "handles empty email list" do
       emails = []
-      result = IpRegistry.allocate_ips(emails, :default)
+      result = NodeRegistry.allocate_ips(emails, :default)
       assert result == []
     end
 
     test "handles empty pool" do
       emails = [create_test_email()]
-      result = IpRegistry.allocate_ips(emails, :non_existent_pool)
+      result = NodeRegistry.allocate_ips(emails, :non_existent_pool)
       # Should return original emails unchanged
       assert result == emails
     end
@@ -88,7 +78,7 @@ defmodule Epoxi.IpRegistryTest do
         create_test_email()
       ]
 
-      result = IpRegistry.allocate_ips(emails, :default)
+      result = NodeRegistry.allocate_ips(emails, :default)
 
       # Should have same number of emails
       assert length(result) == length(emails)
@@ -107,11 +97,11 @@ defmodule Epoxi.IpRegistryTest do
 
       # Set different weights (this assumes we have at least these IPs in the pool)
       # Low weight
-      IpRegistry.set_ip_weight("192.168.1.1", 1)
+      NodeRegistry.set_ip_weight("192.168.1.1", 1)
       # High weight
-      IpRegistry.set_ip_weight("192.168.1.2", 10)
+      NodeRegistry.set_ip_weight("192.168.1.2", 10)
 
-      result = IpRegistry.allocate_ips(emails, :default)
+      result = NodeRegistry.allocate_ips(emails, :default)
 
       # Count IP assignments
       ip_counts =

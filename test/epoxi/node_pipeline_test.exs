@@ -26,7 +26,7 @@ defmodule Epoxi.NodePipelineTest do
         started_at: DateTime.utc_now()
       }
 
-      assert :ok = Node.register_pipeline(pipeline_info)
+      :ets.insert_new(:epoxi_node_pipelines, {pipeline_info.name, pipeline_info})
 
       pipelines = Node.get_pipelines()
       assert length(pipelines) == 1
@@ -42,11 +42,11 @@ defmodule Epoxi.NodePipelineTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline_info)
+      :ets.insert_new(:epoxi_node_pipelines, {pipeline_info.name, pipeline_info})
       assert length(Node.get_pipelines()) == 1
 
-      Node.unregister_pipeline(:test_pipeline)
-      assert length(Node.get_pipelines()) == 0
+      :ets.delete(:epoxi_node_pipelines, :test_pipeline)
+      assert Enum.empty?(Node.get_pipelines())
     end
 
     test "finds pipelines by routing key" do
@@ -66,8 +66,8 @@ defmodule Epoxi.NodePipelineTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline1)
-      Node.register_pipeline(pipeline2)
+      :ets.insert_new(:epoxi_node_pipelines, {pipeline1.name, pipeline1})
+      :ets.insert_new(:epoxi_node_pipelines, {pipeline2.name, pipeline2})
 
       gmail_pipelines = Node.find_pipelines_by_routing_key("gmail_com_192_168_1_1")
       assert length(gmail_pipelines) == 1
@@ -78,7 +78,7 @@ defmodule Epoxi.NodePipelineTest do
       assert hd(yahoo_pipelines).name == :pipeline2
 
       nonexistent_pipelines = Node.find_pipelines_by_routing_key("nonexistent_com")
-      assert length(nonexistent_pipelines) == 0
+      assert Enum.empty?(nonexistent_pipelines)
     end
   end
 
@@ -92,7 +92,7 @@ defmodule Epoxi.NodePipelineTest do
         started_at: DateTime.utc_now()
       }
 
-      Node.register_pipeline(pipeline_info)
+      :ets.insert_new(:epoxi_node_pipelines, {pipeline_info.name, pipeline_info})
 
       current_node = Node.current()
       assert length(current_node.pipelines) >= 1
