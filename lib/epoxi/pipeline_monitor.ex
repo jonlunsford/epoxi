@@ -159,38 +159,23 @@ defmodule Epoxi.PipelineMonitor do
   defp health_check_pipeline(node_name, pipeline_info) do
     now = DateTime.utc_now()
 
-    try do
-      # Check if the process is still alive
-      health =
-        if Process.alive?(pipeline_info.pid) do
-          :healthy
-        else
-          :unhealthy
-        end
+    health =
+      if Process.alive?(pipeline_info.pid) do
+        :healthy
+      else
+        :unhealthy
+      end
 
-      %{
-        node: node_name,
-        pipeline_name: pipeline_info.name,
-        routing_key: pipeline_info.routing_key,
-        health: health,
-        pid: pipeline_info.pid,
-        started_at: pipeline_info.started_at,
-        last_check: now,
-        error: nil
-      }
-    rescue
-      error ->
-        %{
-          node: node_name,
-          pipeline_name: pipeline_info.name,
-          routing_key: pipeline_info.routing_key,
-          health: :unknown,
-          pid: pipeline_info.pid,
-          started_at: pipeline_info.started_at,
-          last_check: now,
-          error: inspect(error)
-        }
-    end
+    %{
+      node: node_name,
+      pipeline_name: pipeline_info.name,
+      routing_key: pipeline_info.routing_key,
+      health: health,
+      pid: pipeline_info.pid,
+      started_at: pipeline_info.started_at,
+      last_check: now,
+      error: nil
+    }
   end
 
   defp summarize_health(health_results) do
@@ -223,21 +208,13 @@ defmodule Epoxi.PipelineMonitor do
     |> Map.new()
   end
 
-
   defp stop_pipeline_on_node(node_name, pid) when is_pid(pid) do
-    try do
-      # Find the node struct
-      case Cluster.find_node(node_name) do
-        {:ok, node} ->
-          Node.route_call(node, Epoxi.Queue.PipelineSupervisor, :terminate_child, [pid])
+    case Cluster.find_node(node_name) do
+      {:ok, node} ->
+        Node.route_call(node, Epoxi.Queue.PipelineSupervisor, :terminate_child, [pid])
 
-        {:error, :not_found} ->
-          {:error, "Node not found"}
-      end
-    rescue
-      error ->
-        Logger.warning("Failed to stop pipeline on node #{node_name}: #{inspect(error)}")
-        {:error, inspect(error)}
+      {:error, :not_found} ->
+        {:error, "Node not found"}
     end
   end
 

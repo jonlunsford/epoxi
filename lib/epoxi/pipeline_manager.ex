@@ -62,7 +62,9 @@ defmodule Epoxi.PipelineManager do
   @doc """
   Finds pipelines by routing key across the cluster.
   """
-  @spec find_pipelines_by_routing_key(Cluster.t(), routing_key()) :: %{atom() => [pipeline_info()]}
+  @spec find_pipelines_by_routing_key(Cluster.t(), routing_key()) :: %{
+          atom() => [pipeline_info()]
+        }
   def find_pipelines_by_routing_key(%Cluster{nodes: nodes}, routing_key) do
     nodes
     |> Enum.map(fn node ->
@@ -76,7 +78,8 @@ defmodule Epoxi.PipelineManager do
   @doc """
   Finds a specific pipeline by name across the cluster.
   """
-  @spec find_pipeline_by_name(Cluster.t(), atom()) :: {:ok, {atom(), pipeline_info()}} | {:error, :not_found}
+  @spec find_pipeline_by_name(Cluster.t(), atom()) ::
+          {:ok, {atom(), pipeline_info()}} | {:error, :not_found}
   def find_pipeline_by_name(%Cluster{nodes: nodes}, pipeline_name) do
     result =
       nodes
@@ -107,7 +110,8 @@ defmodule Epoxi.PipelineManager do
   @doc """
   Finds a node that can handle a specific routing key.
   """
-  @spec find_node_for_routing_key(Cluster.t(), routing_key()) :: {:ok, Node.t()} | {:error, :not_found}
+  @spec find_node_for_routing_key(Cluster.t(), routing_key()) ::
+          {:ok, Node.t()} | {:error, :not_found}
   def find_node_for_routing_key(%Cluster{nodes: nodes}, routing_key) do
     case Enum.find(nodes, fn node ->
            Enum.any?(node.pipelines, &(&1.routing_key == routing_key))
@@ -120,8 +124,13 @@ defmodule Epoxi.PipelineManager do
   @doc """
   Selects optimal node for starting a new pipeline based on strategy.
   """
-  @spec select_optimal_node_for_pipeline(Cluster.t(), atom(), selection_strategy()) :: {:ok, Node.t()} | {:error, :no_nodes_available}
-  def select_optimal_node_for_pipeline(%Cluster{} = cluster, ip_pool, strategy \\ :least_pipelines) do
+  @spec select_optimal_node_for_pipeline(Cluster.t(), atom(), selection_strategy()) ::
+          {:ok, Node.t()} | {:error, :no_nodes_available}
+  def select_optimal_node_for_pipeline(
+        %Cluster{} = cluster,
+        ip_pool,
+        strategy \\ :least_pipelines
+      ) do
     eligible_nodes = Cluster.find_nodes_in_pool(cluster, ip_pool)
 
     case eligible_nodes do
@@ -129,7 +138,7 @@ defmodule Epoxi.PipelineManager do
         {:error, :no_nodes_available}
 
       nodes ->
-        optimal_node = 
+        optimal_node =
           case strategy do
             :least_pipelines -> select_node_with_least_pipelines(nodes)
             :least_loaded -> select_node_with_least_load(nodes)
@@ -153,7 +162,7 @@ defmodule Epoxi.PipelineManager do
         }
   def get_pipeline_stats(%Cluster{} = cluster) do
     pipeline_map = find_all_pipelines(cluster)
-    
+
     total_pipelines =
       pipeline_map
       |> Map.values()
@@ -206,13 +215,13 @@ defmodule Epoxi.PipelineManager do
         }
   def get_load_balancing_recommendations(%Cluster{} = cluster, ip_pool) do
     pool_nodes = Cluster.find_nodes_in_pool(cluster, ip_pool)
-    
+
     if length(pool_nodes) < 2 do
       %{overloaded_nodes: [], underloaded_nodes: [], recommended_moves: []}
     else
       load_analysis = analyze_node_loads(pool_nodes)
       moves = calculate_recommended_moves(load_analysis)
-      
+
       %{
         overloaded_nodes: Map.get(load_analysis, :overloaded, []),
         underloaded_nodes: Map.get(load_analysis, :underloaded, []),
@@ -224,8 +233,9 @@ defmodule Epoxi.PipelineManager do
   @doc """
   Validates pipeline configuration and placement.
   """
-  @spec validate_pipeline_placement(Cluster.t(), atom(), pipeline_info()) :: 
-          {:ok, :valid} | {:error, :node_not_found | :routing_key_conflict | :insufficient_resources}
+  @spec validate_pipeline_placement(Cluster.t(), atom(), pipeline_info()) ::
+          {:ok, :valid}
+          | {:error, :node_not_found | :routing_key_conflict | :insufficient_resources}
   def validate_pipeline_placement(%Cluster{} = cluster, node_name, pipeline_info) do
     with {:ok, node} <- Cluster.find_node_in_cluster(cluster, node_name),
          :ok <- check_routing_key_conflict(node, pipeline_info),
@@ -264,17 +274,17 @@ defmodule Epoxi.PipelineManager do
   defp analyze_node_loads(nodes) do
     loads = Enum.map(nodes, fn node -> {node.name, calculate_node_load(node)} end)
     avg_load = loads |> Enum.map(&elem(&1, 1)) |> Enum.sum() |> Kernel./(length(loads))
-    
-    overloaded = 
+
+    overloaded =
       loads
       |> Enum.filter(fn {_node, load} -> load > avg_load * 1.5 end)
       |> Enum.map(&elem(&1, 0))
-    
-    underloaded = 
+
+    underloaded =
       loads
       |> Enum.filter(fn {_node, load} -> load < avg_load * 0.5 end)
       |> Enum.map(&elem(&1, 0))
-    
+
     %{
       overloaded: overloaded,
       underloaded: underloaded,
@@ -284,7 +294,7 @@ defmodule Epoxi.PipelineManager do
 
   defp calculate_recommended_moves(%{overloaded: [], underloaded: _}), do: []
   defp calculate_recommended_moves(%{overloaded: _, underloaded: []}), do: []
-  
+
   defp calculate_recommended_moves(%{overloaded: [over_node | _], underloaded: [under_node | _]}) do
     # Simple recommendation - move one pipeline from overloaded to underloaded
     [%{from: over_node, to: under_node, pipeline: :any}]

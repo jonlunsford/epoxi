@@ -48,43 +48,29 @@ defmodule Epoxi.Queue.PipelineSupervisor do
   end
 
   defp register_pipeline_with_node(spec, pid) do
-    try do
-      pipeline_info = extract_pipeline_info(spec, pid)
-      Epoxi.NodeRegistry.register_pipeline(Node.self(), pipeline_info)
-
-      Logger.debug("Registered pipeline #{pipeline_info.name} with node registry")
-    rescue
-      error ->
-        Logger.warning("Failed to register pipeline with node: #{inspect(error)}")
-    end
+    pipeline_info = extract_pipeline_info(spec, pid)
+    Epoxi.NodeRegistry.register_pipeline(Node.self(), pipeline_info)
+    Logger.debug("Registered pipeline #{pipeline_info.name} with node registry")
   end
 
   defp unregister_pipeline_with_node(pid) do
-    try do
-      # Find the pipeline by PID and unregister it
-      case find_pipeline_by_pid(pid) do
-        {:ok, pipeline_name} ->
-          Epoxi.NodeRegistry.unregister_pipeline(Node.self(), pipeline_name)
-          Logger.debug("Unregistered pipeline #{pipeline_name} from node registry")
+    case find_pipeline_by_pid(pid) do
+      {:ok, pipeline_name} ->
+        Epoxi.NodeRegistry.unregister_pipeline(Node.self(), pipeline_name)
+        Logger.debug("Unregistered pipeline #{pipeline_name} from node registry")
 
-        :not_found ->
-          Logger.debug("Pipeline with PID #{inspect(pid)} not found in registry")
-      end
-    rescue
-      error ->
-        Logger.warning("Failed to unregister pipeline from node: #{inspect(error)}")
+      :not_found ->
+        Logger.debug("Pipeline with PID #{inspect(pid)} not found in registry")
     end
   end
 
   defp extract_pipeline_info(spec, pid) do
     name = extract_pipeline_name(spec)
 
-    # FIXME - policy this isn't getting passed properly
     %{
       name: name,
       routing_key: name,
       pid: pid,
-      policy: nil,
       started_at: DateTime.utc_now()
     }
   end
