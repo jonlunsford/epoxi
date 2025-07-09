@@ -174,12 +174,7 @@ defmodule Epoxi.Queue do
   @spec exists?(atom()) :: boolean()
   def exists?(name) do
     registered_name = via_tuple(name)
-
-    case registered_name do
-      atom when is_atom(atom) -> Process.whereis(atom) != nil
-      {:via, Registry, {registry, key}} -> Registry.whereis_name({registry, key}) != nil
-      _ -> false
-    end
+    GenServer.whereis(registered_name) != nil
   end
 
   @doc """
