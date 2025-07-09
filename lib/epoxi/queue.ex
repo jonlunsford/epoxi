@@ -189,16 +189,15 @@ defmodule Epoxi.Queue do
   def destroy(name) do
     registered_name = via_tuple(name)
 
-    case GenServer.call(registered_name, :destroy) do
-      :ok -> :ok
-      {:error, reason} -> {:error, reason}
+    # Check if process exists first - avoid exceptions for control flow
+    case GenServer.whereis(registered_name) do
+      nil ->
+        {:error, :no_process}
+
+      _pid ->
+        # Process exists, proceed with destruction
+        GenServer.call(registered_name, :destroy)
     end
-  catch
-    :exit, {:noproc, _} ->
-      # Process does not exist
-      {:error, :no_process}
-    :exit, reason ->
-      {:error, reason}
   end
 
   @impl true
