@@ -155,6 +155,57 @@ defmodule Epoxi.Queue do
     GenServer.call(registered_name, :sync)
   end
 
+  @doc """
+  Checks if the queue is empty.
+
+  Returns `true` if the queue contains no messages, `false` otherwise.
+  """
+  @spec empty?(atom()) :: boolean()
+  def empty?(name) do
+    registered_name = via_tuple(name)
+    GenServer.call(registered_name, :empty?)
+  end
+
+  @doc """
+  Checks if a queue exists.
+
+  Returns `true` if the queue process is running, `false` otherwise.
+  """
+  @spec exists?(atom()) :: boolean()
+  def exists?(name) do
+    registered_name = via_tuple(name)
+
+    case registered_name do
+      atom when is_atom(atom) -> Process.whereis(atom) != nil
+      {:via, Registry, {registry, key}} -> Registry.whereis_name({registry, key}) != nil
+      _ -> false
+    end
+  end
+
+  @doc """
+  Destroys the queue by stopping the process and removing the DETS file.
+
+  This function should only be called when the queue is empty.
+  It will stop the queue process and remove the underlying DETS file.
+
+  Returns `:ok` on success or `{:error, reason}` on failure.
+  """
+  @spec destroy(atom()) :: :ok | {:error, term()}
+  def destroy(name) do
+    registered_name = via_tuple(name)
+
+    case GenServer.call(registered_name, :destroy) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  catch
+    :exit, {:noproc, _} ->
+      # Process does not exist
+      {:error, :no_process}
+    :exit, reason ->
+      {:error, reason}
+  end
+
   @impl true
   def init(opts) do
     name = Keyword.fetch!(opts, :name)
@@ -231,6 +282,12 @@ defmodule Epoxi.Queue do
   end
 
   @impl true
+  def handle_call(:empty?, _from, state) do
+    count = :ets.info(state.ets_table, :size)
+    {:reply, count == 0, state}
+  end
+
+  @impl true
   def handle_call(:flush, _from, state) do
     :ets.delete_all_objects(state.ets_table)
     :dets.delete_all_objects(state.dets_table)
@@ -250,6 +307,38 @@ defmodule Epoxi.Queue do
     ets = :ets.info(state.ets_table)
 
     {:reply, %{dets: dets, ets: ets}, state}
+  end
+
+  @impl true
+  def handle_call(:destroy, _from, state) do
+    # Check if queue is empty before destroying
+    case :ets.info(state.ets_table, :size) do
+      0 ->
+        # Queue is empty, safe to destroy
+        # Close DETS properly
+        :dets.close(state.dets_table)
+
+        # Remove the DETS file
+        dets_path = Path.join(state.table_dir, "#{state.name}.dets")
+        case File.rm(dets_path) do
+          :ok ->
+            :telemetry.execute(
+              [:epoxi, :queue, :destroyed],
+              %{},
+              %{queue: state.name}
+            )
+
+            # Mark state as destroyed to prevent sync in terminate
+            destroyed_state = Map.put(state, :destroyed, true)
+            {:stop, :normal, :ok, destroyed_state}
+
+          {:error, reason} ->
+            {:reply, {:error, {:file_removal_failed, reason}}, state}
+        end
+
+      count ->
+        {:reply, {:error, {:queue_not_empty, count}}, state}
+    end
   end
 
   @impl true
@@ -281,9 +370,11 @@ defmodule Epoxi.Queue do
 
   @impl true
   def terminate(_reason, state) do
-    do_sync(state)
-
-    :dets.close(state.dets_table)
+    # Only sync if not already destroyed
+    unless Map.get(state, :destroyed, false) do
+      do_sync(state)
+      :dets.close(state.dets_table)
+    end
 
     :ok
   end
