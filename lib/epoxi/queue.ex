@@ -305,33 +305,17 @@ defmodule Epoxi.Queue do
 
   @impl true
   def handle_call(:destroy, _from, state) do
-    # Check if queue is empty before destroying
-    case :ets.info(state.ets_table, :size) do
-      0 ->
-        # Queue is empty, safe to destroy
-        # Close DETS properly
-        :dets.close(state.dets_table)
-
-        # Remove the DETS file
-        dets_path = Path.join(state.table_dir, "#{state.name}.dets")
-        case File.rm(dets_path) do
-          :ok ->
-            :telemetry.execute(
-              [:epoxi, :queue, :destroyed],
-              %{},
-              %{queue: state.name}
-            )
-
-            # Mark state as destroyed to prevent sync in terminate
-            destroyed_state = Map.put(state, :destroyed, true)
-            {:stop, :normal, :ok, destroyed_state}
-
-          {:error, reason} ->
-            {:reply, {:error, {:file_removal_failed, reason}}, state}
-        end
-
-      count ->
+    with 0 <- :ets.info(state.ets_table, :size),
+         :ok <- destroy_queue_storage(state) do
+      # Mark state as destroyed to prevent sync in terminate
+      destroyed_state = Map.put(state, :destroyed, true)
+      {:stop, :normal, :ok, destroyed_state}
+    else
+      count when is_integer(count) ->
         {:reply, {:error, {:queue_not_empty, count}}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
     end
   end
 
@@ -435,6 +419,28 @@ defmodule Epoxi.Queue do
 
   defp schedule_sync(interval) do
     Process.send_after(self(), :sync, interval)
+  end
+
+  defp destroy_queue_storage(state) do
+    # Close DETS properly
+    :dets.close(state.dets_table)
+
+    # Remove the DETS file
+    dets_path = Path.join(state.table_dir, "#{state.name}.dets")
+
+    case File.rm(dets_path) do
+      :ok ->
+        :telemetry.execute(
+          [:epoxi, :queue, :destroyed],
+          %{},
+          %{queue: state.name}
+        )
+
+        :ok
+
+      {:error, reason} ->
+        {:error, {:file_removal_failed, reason}}
+    end
   end
 
   defp do_sync(state) do
