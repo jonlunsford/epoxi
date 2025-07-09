@@ -10,8 +10,8 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
     dlq_name = :"#{base_name}_dlq"
 
     # Start the queues manually (not supervised) so we can destroy them
-    {:ok, inbox_pid} = Epoxi.Queue.start_link([name: inbox_name])
-    {:ok, dlq_pid} = Epoxi.Queue.start_link([name: dlq_name])
+    {:ok, inbox_pid} = Epoxi.Queue.start_link(name: inbox_name)
+    {:ok, dlq_pid} = Epoxi.Queue.start_link(name: dlq_name)
 
     # Create producer state
     state = %{
