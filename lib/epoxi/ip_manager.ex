@@ -18,7 +18,13 @@ defmodule Epoxi.IpManager do
   @doc """
   Allocates IP addresses to emails using the specified strategy.
   """
-  @spec allocate_ips([Epoxi.Email.t()], Cluster.t(), ip_weights(), pool_name(), allocation_strategy()) ::
+  @spec allocate_ips(
+          [Epoxi.Email.t()],
+          Cluster.t(),
+          ip_weights(),
+          pool_name(),
+          allocation_strategy()
+        ) ::
           [Epoxi.Email.t()]
   def allocate_ips(emails, cluster, ip_weights, pool_name, strategy \\ :weighted) do
     pool_ips = get_pool_ips(cluster, pool_name)
@@ -94,7 +100,9 @@ defmodule Epoxi.IpManager do
   @doc """
   Gets all IP weights for a specific pool.
   """
-  @spec get_pool_ip_weights(Cluster.t(), ip_weights(), pool_name()) :: %{ip_address() => ip_weight()}
+  @spec get_pool_ip_weights(Cluster.t(), ip_weights(), pool_name()) :: %{
+          ip_address() => ip_weight()
+        }
   def get_pool_ip_weights(%Cluster{} = cluster, ip_weights, pool_name) do
     pool_ips = get_pool_ips(cluster, pool_name)
     Map.take(ip_weights, pool_ips)
@@ -121,7 +129,7 @@ defmodule Epoxi.IpManager do
         }
   def get_pool_stats(%Cluster{} = cluster, pool_name) do
     pool_nodes = Cluster.find_nodes_in_pool(cluster, pool_name)
-    
+
     ip_distribution =
       pool_nodes
       |> Enum.map(fn node -> {node.name, length(node.ip_addresses || [])} end)
@@ -143,13 +151,13 @@ defmodule Epoxi.IpManager do
   @spec suggest_ip_weights(Cluster.t(), pool_name()) :: ip_weights()
   def suggest_ip_weights(%Cluster{} = cluster, pool_name) do
     pool_nodes = Cluster.find_nodes_in_pool(cluster, pool_name)
-    
+
     pool_nodes
     |> Enum.flat_map(fn node ->
       node_health = calculate_node_health_score(node)
       node_capacity = calculate_node_capacity(node)
       suggested_weight = round(node_health * node_capacity * 10)
-      
+
       Enum.map(node.ip_addresses || [], fn ip -> {ip, suggested_weight} end)
     end)
     |> Map.new()
@@ -181,10 +189,12 @@ defmodule Epoxi.IpManager do
 
   defp generate_weighted_allocation(pool_ips, ip_weights, count) do
     weighted_ips = build_weighted_ip_list(pool_ips, ip_weights)
-    
+
     case weighted_ips do
-      [] -> generate_round_robin_allocation(pool_ips, count)
-      _ -> 
+      [] ->
+        generate_round_robin_allocation(pool_ips, count)
+
+      _ ->
         weighted_ips
         |> Stream.cycle()
         |> Enum.take(count)
@@ -228,6 +238,6 @@ defmodule Epoxi.IpManager do
     # Simple capacity calculation - more pipelines = less capacity
     base_capacity = 1.0
     pipeline_count = length(pipelines)
-    max(0.1, base_capacity - (pipeline_count * 0.1))
+    max(0.1, base_capacity - pipeline_count * 0.1)
   end
 end

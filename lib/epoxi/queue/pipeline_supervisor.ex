@@ -30,7 +30,18 @@ defmodule Epoxi.Queue.PipelineSupervisor do
 
   def terminate_child(pid) when is_pid(pid) do
     unregister_pipeline_with_node(pid)
-    DynamicSupervisor.terminate_child(__MODULE__, pid)
+    result = DynamicSupervisor.terminate_child(__MODULE__, pid)
+
+    # Log pipeline termination for observability
+    case find_pipeline_by_pid(pid) do
+      {:ok, pipeline_name} ->
+        Logger.info("Pipeline #{pipeline_name} terminated")
+
+      :not_found ->
+        Logger.debug("Terminated unknown pipeline with PID #{inspect(pid)}")
+    end
+
+    result
   end
 
   @impl true

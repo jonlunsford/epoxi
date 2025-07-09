@@ -11,10 +11,10 @@ defmodule Epoxi.Queue.PipelineTest do
       start_supervised({Epoxi.Queue.Pipeline, opts})
 
     on_exit(fn ->
-      :dets.close(String.to_charlist("#{pipeline_name}_inbox.dets"))
-      :dets.close(String.to_charlist("#{pipeline_name}_dlq.dets"))
-      File.rm!("priv/queues/#{pipeline_name}_inbox.dets")
-      File.rm!("priv/queues/#{pipeline_name}_dlq.dets")
+      # Clean up any remaining DETS files if they still exist
+      # (our queue cleanup may have already removed them)
+      cleanup_queue_files("#{pipeline_name}_inbox")
+      cleanup_queue_files("#{pipeline_name}_dlq")
     end)
 
     {:ok, %{pipeline_name: pipeline_name}}
@@ -38,5 +38,15 @@ defmodule Epoxi.Queue.PipelineTest do
     ref = Broadway.test_message(pipeline_name, email)
 
     assert_receive({:ack, ^ref, [], [%Broadway.Message{}]}, 3000)
+  end
+
+  defp cleanup_queue_files(queue_name) do
+    dets_path = "priv/queues/#{queue_name}.dets"
+
+    case File.rm(dets_path) do
+      :ok -> :ok
+      {:error, :enoent} -> :ok
+      {:error, reason} -> IO.puts("Failed to clean up #{dets_path}: #{reason}")
+    end
   end
 end

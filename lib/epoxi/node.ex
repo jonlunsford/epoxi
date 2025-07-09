@@ -108,7 +108,6 @@ defmodule Epoxi.Node do
     end
   end
 
-
   @doc """
   Gets all pipelines running on the current node.
   """

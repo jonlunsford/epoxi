@@ -42,4 +42,57 @@ defmodule Epoxi.QueueTest do
       assert :ok = Epoxi.Queue.enqueue_many(queue, emails)
     end
   end
+
+  describe "empty?/1" do
+    test "returns true when queue is empty", %{queue: queue} do
+      assert Epoxi.Queue.empty?(queue) == true
+    end
+
+    test "returns false when queue has messages", %{queue: queue} do
+      Epoxi.Queue.enqueue(queue, "test message")
+      assert Epoxi.Queue.empty?(queue) == false
+    end
+  end
+
+  describe "exists?/1" do
+    test "returns true when queue exists", %{queue: queue} do
+      assert Epoxi.Queue.exists?(queue) == true
+    end
+
+    test "returns false for non-existent queue" do
+      non_existent_queue = :non_existent_queue_123
+      assert Epoxi.Queue.exists?(non_existent_queue) == false
+    end
+  end
+
+  describe "destroy/1" do
+    test "destroys empty queue successfully", %{queue: queue} do
+      # Ensure queue is empty
+      assert Epoxi.Queue.empty?(queue) == true
+
+      # Destroy the queue
+      assert :ok = Epoxi.Queue.destroy(queue)
+
+      # Verify queue no longer exists
+      assert Epoxi.Queue.exists?(queue) == false
+    end
+
+    test "fails to destroy non-empty queue", %{queue: queue} do
+      # Add a message to the queue
+      Epoxi.Queue.enqueue(queue, "test message")
+
+      # Attempt to destroy should fail
+      assert {:error, {:queue_not_empty, 1}} = Epoxi.Queue.destroy(queue)
+
+      # Verify queue still exists
+      assert Epoxi.Queue.exists?(queue) == true
+    end
+
+    test "handles destroy of non-existent queue gracefully" do
+      non_existent_queue = :non_existent_queue_123
+
+      # Should return error for non-existent queue
+      assert {:error, _reason} = Epoxi.Queue.destroy(non_existent_queue)
+    end
+  end
 end
