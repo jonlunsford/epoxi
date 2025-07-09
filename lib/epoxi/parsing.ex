@@ -99,8 +99,7 @@ defmodule Epoxi.Parsing do
           |> String.split("@")
           |> List.first()
           |> String.split(~r/([^\w\s]|_)/)
-          |> Enum.map(&String.capitalize/1)
-          |> Enum.join(" ")
+          |> Enum.map_join(" ", &String.capitalize/1)
 
         "#{name} <#{address}>"
     end

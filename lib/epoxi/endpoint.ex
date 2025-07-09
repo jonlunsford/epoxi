@@ -17,6 +17,22 @@ defmodule Epoxi.Endpoint do
     send_resp(conn, 200, "pong!")
   end
 
+  get "/admin/pipelines" do
+    stats = Epoxi.PipelineMonitor.get_cluster_stats()
+    send_resp(conn, 200, JSON.encode!(stats))
+  end
+
+  get "/admin/pipelines/health" do
+    health_results = Epoxi.PipelineMonitor.health_check_all()
+    send_resp(conn, 200, JSON.encode!(health_results))
+  end
+
+  get "/admin/pipelines/:routing_key" do
+    routing_key = conn.path_params["routing_key"]
+    health_results = Epoxi.PipelineMonitor.health_check_routing_key(routing_key)
+    send_resp(conn, 200, JSON.encode!(health_results))
+  end
+
   post "/messages" do
     {status, body} =
       case conn.body_params do
@@ -42,16 +58,13 @@ defmodule Epoxi.Endpoint do
   end
 
   defp route_to_node(emails, pool) do
-    node =
-      Epoxi.Cluster.init()
-      |> Epoxi.Cluster.find_nodes_in_pool(pool)
-      # TODO: Use algos (round robbin, etc) to select node in pool.
-      |> hd()
+    {:ok, summary} = Epoxi.Email.Router.route_emails(emails, pool)
+    message = build_success_message(summary, pool)
+    {200, message}
+  end
 
-    case Epoxi.Node.route_cast(node, Epoxi.Queue, :enqueue_many, [:inbox, emails]) do
-      :ok -> {200, "Messages queued in the #{pool} pool"}
-      {:ok, :message_sent_async} -> {200, "Messages queued in the #{pool} pool"}
-      {:error, reason} -> {400, reason}
-    end
+  defp build_success_message(summary, pool) do
+    "Successfully routed #{summary.total_emails} emails in #{summary.total_batches} batches to #{pool} pool. " <>
+      "#{summary.new_pipelines_started} new pipelines started."
   end
 end

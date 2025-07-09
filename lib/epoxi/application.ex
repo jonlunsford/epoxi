@@ -8,8 +8,8 @@ defmodule Epoxi.Application do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
-      {Epoxi.PipelineSupervisor, []},
-      {Epoxi.IpRegistry, []},
+      {Epoxi.Queue.PipelineSupervisor, []},
+      {Epoxi.NodeRegistry, []},
       {Task, fn -> start_pipelines() end},
       {Bandit, Application.get_env(:epoxi, :endpoint_options)}
     ]
@@ -31,6 +31,8 @@ defmodule Epoxi.Application do
         message_interval: 60_000
       )
 
-    {:ok, _pid} = Epoxi.start_pipeline(default_policy)
+    default_opts = Epoxi.Queue.Pipeline.build_policy_opts(default_policy)
+
+    {:ok, _pid} = Epoxi.start_pipeline(default_opts)
   end
 end

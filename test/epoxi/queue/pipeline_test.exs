@@ -28,7 +28,7 @@ defmodule Epoxi.Queue.PipelineTest do
 
     ref = Broadway.test_message(pipeline_name, email)
 
-    assert_receive({:ack, ^ref, [%Broadway.Message{}], []})
+    assert_receive({:ack, ^ref, [%Broadway.Message{}], []}, 3000)
   end
 
   test "failed messages", %{pipeline_name: pipeline_name} do
@@ -37,6 +37,6 @@ defmodule Epoxi.Queue.PipelineTest do
 
     ref = Broadway.test_message(pipeline_name, email)
 
-    assert_receive({:ack, ^ref, [], [%Broadway.Message{}]})
+    assert_receive({:ack, ^ref, [], [%Broadway.Message{}]}, 3000)
   end
 end

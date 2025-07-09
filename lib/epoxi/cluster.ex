@@ -62,7 +62,7 @@ defmodule Epoxi.Cluster do
     new_nodes = Enum.reject(nodes, fn node -> node.name == node_to_remove.name end)
 
     %{cluster | nodes: new_nodes, node_count: length(new_nodes)}
-    |> remove_node_from_ip_pool(node_to_remove)
+    |> remove_node_from_ip_pool(node_to_remove.name)
   end
 
   @spec add_node_to_ip_pool(cluster :: t(), node :: Epoxi.Node.t()) :: t()
@@ -82,7 +82,7 @@ defmodule Epoxi.Cluster do
   def remove_node_from_ip_pool(%Cluster{ip_pools: ip_pools} = cluster, node_to_remove) do
     new_ip_pools =
       Map.new(ip_pools, fn {pool_name, pool_nodes} ->
-        {pool_name, Map.delete(pool_nodes, node_to_remove.name)}
+        {pool_name, Map.delete(pool_nodes, node_to_remove)}
       end)
 
     %{cluster | ip_pools: new_ip_pools}
@@ -154,6 +154,14 @@ defmodule Epoxi.Cluster do
 
   @spec node_count(cluster :: t()) :: non_neg_integer()
   def node_count(%Cluster{nodes: nodes}), do: length(nodes)
+
+
+
+
+
+
+
+
 
   defp ensure_ip_pool(%Epoxi.Node{ip_pool: nil} = node) do
     %{node | ip_pool: :default}

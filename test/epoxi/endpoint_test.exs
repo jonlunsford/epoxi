@@ -19,7 +19,8 @@ defmodule Epoxi.EndpointTest do
       conn = Epoxi.Endpoint.call(conn, [])
 
       assert conn.status == 200
-      assert conn.resp_body == "Messages queued in the default pool"
+
+      assert String.contains?(conn.resp_body, "Successfully routed 1000 emails")
     end
 
     @tag :distributed
@@ -30,7 +31,8 @@ defmodule Epoxi.EndpointTest do
       conn = Epoxi.Endpoint.call(conn, [])
 
       assert conn.status == 200
-      assert conn.resp_body == "Messages queued in the default pool"
+
+      assert String.contains?(conn.resp_body, "Successfully routed 1000 emails")
     end
   end
 end

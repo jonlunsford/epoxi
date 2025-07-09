@@ -12,12 +12,21 @@ defmodule Epoxi.Queue.Pipeline do
     PipelinePolicy.broadway_opts(policy)
   end
 
+  def build_policy_opts(%Epoxi.Email.Batch{} = batch) do
+    PipelinePolicy.broadway_opts(batch)
+  end
+
+  def build_policy_opts(opts) when is_list(opts) do
+    opts
+  end
+
   def child_spec(opts) do
-    id = Keyword.get(opts, :name, __MODULE__)
+    broadway_opts = build_policy_opts(opts)
+    id = Keyword.get(broadway_opts, :name, __MODULE__)
 
     %{
       id: id,
-      start: {__MODULE__, :start_link, [opts]},
+      start: {__MODULE__, :start_link, [broadway_opts]},
       type: :worker,
       restart: :permanent,
       shutdown: 30_000

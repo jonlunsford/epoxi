@@ -24,7 +24,6 @@ defmodule Epoxi.SmtpClient do
            {email.from, email.to, message},
            config
          ) do
-      {:ok, receipt} -> {:ok, receipt}
       receipt when is_binary(receipt) -> {:ok, receipt}
       error -> {:error, error}
     end
@@ -33,8 +32,8 @@ defmodule Epoxi.SmtpClient do
   @doc """
   Send a non-blocking email via a spawned_linked process
   """
-  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function) :: :ok
-  def send_async(%Email{} = email, opts \\ [], callback \\ nil) do
+  @spec send_async(Email.t(), opts :: Keyword.t(), callback :: function | nil | :undefined) :: :ok
+  def send_async(%Email{} = email, opts \\ [], callback \\ :undefined) do
     email = Email.put_content_type(email)
     message = Render.encode(email)
 
@@ -42,6 +41,8 @@ defmodule Epoxi.SmtpClient do
       opts
       |> SmtpConfig.new()
       |> SmtpConfig.to_keyword_list()
+
+    callback = if callback == nil, do: :undefined, else: callback
 
     :gen_smtp_client.send(
       {email.from, email.to, message},
@@ -64,7 +65,7 @@ defmodule Epoxi.SmtpClient do
   end
 
   @spec connect(opts :: Keyword.t()) ::
-          {:ok, :gen_smtp_client.socket()} | {:error, term()}
+          {:ok, term()} | {:error, term()}
   def connect(opts \\ []) do
     config =
       opts
@@ -75,10 +76,7 @@ defmodule Epoxi.SmtpClient do
       {:ok, socket} ->
         {:ok, socket}
 
-      {:error, reason} ->
-        {:error, reason}
-
-      {:error, _permanent_failure, details} ->
+      {:error, _type, details} ->
         {:error, details}
     end
   end
@@ -91,8 +89,8 @@ defmodule Epoxi.SmtpClient do
   Delivers email over a persistent socket connection, this can be used when
   PIPELINING on the receiving server is available.
   """
-  @spec send_bulk([Email.t()], :gen_smtp_client.socket(), acc :: List.t()) ::
-          {:ok, [Email.at()]} | {:error, term(), [Email.t()]}
+  @spec send_bulk([Email.t()], term(), acc :: list()) ::
+          {:ok, [Email.t()]} | {:error, term(), [Email.t()]}
   def send_bulk(emails, socket, acc \\ []) do
     deliver(emails, socket, acc)
   end

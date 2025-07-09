@@ -5,9 +5,9 @@ defmodule Epoxi.Queue.PipelinePolicy do
   defstruct name: :default,
             max_connections: 10,
             max_retries: 5,
-            batch_size: 100,
-            batch_timeout: 1_000,
-            allowed_messages: 1000,
+            batch_size: 10,
+            batch_timeout: 5_000,
+            allowed_messages: 100,
             message_interval: 60_000
 
   @type t :: %__MODULE__{
@@ -25,6 +25,14 @@ defmodule Epoxi.Queue.PipelinePolicy do
   @spec new(keyword()) :: PipelinePolicy.t()
   def new(opts \\ []) do
     struct(PipelinePolicy, opts)
+  end
+
+  @spec broadway_opts(Epoxi.Email.Batch.t()) :: keyword()
+  def broadway_opts(%Epoxi.Email.Batch{policy: policy, routing_key: routing_key}) do
+    name = String.to_atom(routing_key)
+
+    broadway_opts(policy)
+    |> Keyword.put(:name, name)
   end
 
   @spec broadway_opts(PipelinePolicy.t()) :: keyword()
