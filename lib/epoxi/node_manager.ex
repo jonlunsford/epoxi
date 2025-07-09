@@ -58,7 +58,6 @@ defmodule Epoxi.NodeManager do
     Cluster.find_nodes_in_pool(cluster, pool_name)
   end
 
-
   @doc """
   Selects optimal nodes from the cluster based on strategy and criteria.
   """
@@ -166,5 +165,4 @@ defmodule Epoxi.NodeManager do
   defp sort_by_health(nodes) do
     Enum.sort_by(nodes, &calculate_node_health/1, :desc)
   end
-
 end

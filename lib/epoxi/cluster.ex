@@ -155,14 +155,6 @@ defmodule Epoxi.Cluster do
   @spec node_count(cluster :: t()) :: non_neg_integer()
   def node_count(%Cluster{nodes: nodes}), do: length(nodes)
 
-
-
-
-
-
-
-
-
   defp ensure_ip_pool(%Epoxi.Node{ip_pool: nil} = node) do
     %{node | ip_pool: :default}
   end
