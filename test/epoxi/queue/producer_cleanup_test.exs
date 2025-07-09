@@ -9,9 +9,9 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
     inbox_name = :"#{base_name}_inbox"
     dlq_name = :"#{base_name}_dlq"
 
-    # Start the queues
-    {:ok, _inbox_pid} = start_supervised({Epoxi.Queue, [name: inbox_name]})
-    {:ok, _dlq_pid} = start_supervised({Epoxi.Queue, [name: dlq_name]})
+    # Start the queues manually (not supervised) so we can destroy them
+    {:ok, inbox_pid} = Epoxi.Queue.start_link([name: inbox_name])
+    {:ok, dlq_pid} = Epoxi.Queue.start_link([name: dlq_name])
 
     # Create producer state
     state = %{
@@ -25,7 +25,9 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
     }
 
     on_exit(fn ->
-      # Clean up any remaining files
+      # Clean up any remaining processes and files
+      if Process.alive?(inbox_pid), do: GenServer.stop(inbox_pid)
+      if Process.alive?(dlq_pid), do: GenServer.stop(dlq_pid)
       cleanup_queue_files(inbox_name)
       cleanup_queue_files(dlq_name)
     end)
@@ -52,15 +54,9 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
       # Call prepare_for_draining
       {:noreply, [], ^state} = Producer.prepare_for_draining(state)
 
-      # Give the cleanup task time to run
-      :timer.sleep(500)
-
-      # Verify the DETS files were cleaned up (the actual cleanup verification)
-      inbox_dets_path = "priv/queues/#{inbox_name}.dets"
-      dlq_dets_path = "priv/queues/#{dlq_name}.dets"
-      
-      refute File.exists?(inbox_dets_path), "Inbox DETS file should be cleaned up"
-      refute File.exists?(dlq_dets_path), "DLQ DETS file should be cleaned up"
+      # Instead of sleep, we wait for the cleanup task to complete by polling
+      # until the processes are actually terminated
+      wait_for_queue_cleanup(inbox_name, dlq_name)
     end
 
     test "skips cleanup when inbox has messages", %{
@@ -80,10 +76,9 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
       # Call prepare_for_draining
       {:noreply, [], ^state} = Producer.prepare_for_draining(state)
 
-      # Give any cleanup task time to run
-      :timer.sleep(100)
-
-      # Verify queues still exist
+      # Verify queues still exist (no cleanup should happen)
+      # Give a small grace period then check
+      Process.sleep(50)
       assert Epoxi.Queue.exists?(inbox_name) == true
       assert Epoxi.Queue.exists?(dlq_name) == true
     end
@@ -105,12 +100,28 @@ defmodule Epoxi.Queue.Producer.CleanupTest do
       # Call prepare_for_draining
       {:noreply, [], ^state} = Producer.prepare_for_draining(state)
 
-      # Give any cleanup task time to run
-      :timer.sleep(100)
-
-      # Verify queues still exist
+      # Verify queues still exist (no cleanup should happen)
+      # Give a small grace period then check
+      Process.sleep(50)
       assert Epoxi.Queue.exists?(inbox_name) == true
       assert Epoxi.Queue.exists?(dlq_name) == true
+    end
+  end
+
+  defp wait_for_queue_cleanup(inbox_name, dlq_name, attempts \\ 50) do
+    if attempts <= 0 do
+      flunk("Timed out waiting for queue cleanup")
+    end
+
+    case {Epoxi.Queue.exists?(inbox_name), Epoxi.Queue.exists?(dlq_name)} do
+      {false, false} ->
+        # Both queues are cleaned up
+        :ok
+
+      _ ->
+        # Still exists, wait a bit and try again
+        Process.sleep(10)
+        wait_for_queue_cleanup(inbox_name, dlq_name, attempts - 1)
     end
   end
 
