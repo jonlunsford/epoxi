@@ -138,6 +138,8 @@ defmodule Epoxi.Queue.Producer do
   def prepare_for_draining(state) do
     with :ok <- Epoxi.Queue.sync(state.inbox_ref),
          :ok <- Epoxi.Queue.sync(state.dead_letter_ref) do
+      # Check if both queues are empty and can be cleaned up
+      maybe_cleanup_queues(state)
       {:noreply, [], state}
     else
       error -> {:stop, {:failed_to_sync_to_disk, error}, state}
@@ -186,5 +188,50 @@ defmodule Epoxi.Queue.Producer do
     prefixed_string = "#{string}_#{suffix}"
 
     String.to_atom(prefixed_string)
+  end
+
+  defp maybe_cleanup_queues(state) do
+    # Check if both queues are empty
+    inbox_empty = Epoxi.Queue.empty?(state.inbox_ref)
+    dlq_empty = Epoxi.Queue.empty?(state.dead_letter_ref)
+
+    if inbox_empty and dlq_empty do
+      cleanup_queues(state)
+    else
+      Logger.debug(
+        "Skipping queue cleanup - inbox empty: #{inbox_empty}, DLQ empty: #{dlq_empty}"
+      )
+    end
+  end
+
+  defp cleanup_queues(state) do
+    Logger.info("Cleaning up empty queues for pipeline: #{state.ack_ref}")
+
+    # Start cleanup in a separate task to avoid blocking the draining process
+    Task.start(fn ->
+      cleanup_queue_safely(state.inbox_ref, "inbox")
+      cleanup_queue_safely(state.dead_letter_ref, "dlq")
+
+      :telemetry.execute(
+        [:epoxi, :queue, :pipeline_cleanup],
+        %{queues_cleaned: 2},
+        %{pipeline: state.ack_ref, inbox: state.inbox_ref, dlq: state.dead_letter_ref}
+      )
+    end)
+  end
+
+  defp cleanup_queue_safely(queue_ref, queue_type) do
+    case Epoxi.Queue.destroy(queue_ref) do
+      :ok ->
+        Logger.info("Successfully cleaned up #{queue_type} queue: #{queue_ref}")
+
+      {:error, {:queue_not_empty, count}} ->
+        Logger.warning(
+          "Cannot cleanup #{queue_type} queue #{queue_ref} - not empty (#{count} messages)"
+        )
+
+      {:error, reason} ->
+        Logger.error("Failed to cleanup #{queue_type} queue #{queue_ref}: #{inspect(reason)}")
+    end
   end
 end
