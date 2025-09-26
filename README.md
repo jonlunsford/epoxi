@@ -398,13 +398,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Uses [gen_smtp](https://github.com/Vagabond/gen_smtp) for SMTP functionality
 - Powered by [Bandit](https://github.com/mtrudel/bandit) for HTTP serving
 
-## Support
-
-- 📖 [Documentation](https://hexdocs.pm/epoxi)
-- 🐛 [Issue Tracker](https://github.com/your-org/epoxi/issues)
-- 💬 [Discussions](https://github.com/your-org/epoxi/discussions)
-- 📧 [Email Support](mailto:support@example.com)
-
 ---
 
 **Epoxi** - Built for mission-critical email delivery. 🚀
