@@ -1,10 +1,5 @@
 # Epoxi
 
-[![Hex.pm](https://img.shields.io/hexpm/v/epoxi.svg)](https://hex.pm/packages/epoxi)
-[![Hex.pm](https://img.shields.io/hexpm/dt/epoxi.svg)](https://hex.pm/packages/epoxi)
-[![Hex.pm](https://img.shields.io/hexpm/dw/epoxi.svg)](https://hex.pm/packages/epoxi)
-[![Build Status](https://github.com/your-org/epoxi/workflows/CI/badge.svg)](https://github.com/your-org/epoxi/actions)
-
 **Epoxi** is a high-performance, fault-tolerant Mail Transfer Agent (MTA) and Mail Delivery Agent (MDA) built with Elixir/OTP. Named after NASA's EPOXI mission, it's designed form mission-critical email delivery.
 
 ## Features
@@ -385,7 +380,7 @@ export EPOXI_COOKIE="your-secret-cookie"
 
 ### Development Guidelines
 
-- Follow Elixir best practices and anti-patterns
+- Follow Elixir best practices and avoid [anti-patterns](https://hexdocs.pm/elixir/main/what-anti-patterns.html)
 - Add `@spec` and `@doc` to all public functions
 - Add `@moduledoc` to all modules
 - Write comprehensive tests
