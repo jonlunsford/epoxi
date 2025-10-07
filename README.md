@@ -1,4 +1,4 @@
-# Epoxi
+# Epoxi MTA
 
 **Epoxi** is a high-performance, fault-tolerant Mail Transfer Agent (MTA) and Mail Delivery Agent (MDA) built with Elixir/OTP. Named after NASA's EPOXI mission, it's designed form mission-critical email delivery.
 
