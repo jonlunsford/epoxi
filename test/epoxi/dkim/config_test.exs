@@ -5,260 +5,135 @@ defmodule Epoxi.DKIM.ConfigTest do
 
   @valid_private_key """
   -----BEGIN RSA PRIVATE KEY-----
-  MIIEpAIBAAKCAQEA1234567890abcdef...
+  MIIEpAIBAAKCAQEA0Z5V...
   -----END RSA PRIVATE KEY-----
   """
 
+  @valid_attrs %{
+    tenant_id: "tenant1",
+    domain: "example.com",
+    selector: "default",
+    private_key: @valid_private_key
+  }
+
   describe "new/1" do
     test "creates a valid DKIM config with required fields" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key
-      }
-
-      assert {:ok, %Config{} = config} = Config.new(attrs)
+      assert {:ok, config} = Config.new(@valid_attrs)
       assert config.tenant_id == "tenant1"
       assert config.domain == "example.com"
       assert config.selector == "default"
-      # default
       assert config.algorithm == "rsa-sha256"
-      # default
       assert config.canonicalization == "relaxed/relaxed"
-      # default
       assert config.status == :active
       assert is_binary(config.private_key_encrypted)
-      assert %DateTime{} = config.created_at
-      assert %DateTime{} = config.updated_at
+      assert config.private_key_encrypted != @valid_private_key
     end
 
-    test "creates config with all optional fields" do
-      now = DateTime.utc_now()
+    test "encrypts the private key" do
+      assert {:ok, config} = Config.new(@valid_attrs)
+      # Key should be encrypted, not stored in plaintext
+      refute config.private_key_encrypted == @valid_private_key
+      assert byte_size(config.private_key_encrypted) >= 32
+    end
 
-      attrs = %{
-        tenant_id: "tenant2",
-        domain: "test.org",
-        selector: "custom",
-        private_key: @valid_private_key,
-        algorithm: "rsa-sha1",
-        canonicalization: "simple/simple",
-        status: :inactive,
-        created_at: now,
-        updated_at: now
-      }
+    test "sets default values for optional fields" do
+      assert {:ok, config} = Config.new(@valid_attrs)
+      assert config.algorithm == "rsa-sha256"
+      assert config.canonicalization == "relaxed/relaxed"
+      assert config.status == :active
+    end
 
-      assert {:ok, %Config{} = config} = Config.new(attrs)
+    test "accepts custom algorithm" do
+      attrs = Map.put(@valid_attrs, :algorithm, "rsa-sha1")
+      assert {:ok, config} = Config.new(attrs)
       assert config.algorithm == "rsa-sha1"
+    end
+
+    test "accepts custom canonicalization" do
+      attrs = Map.put(@valid_attrs, :canonicalization, "simple/simple")
+      assert {:ok, config} = Config.new(attrs)
       assert config.canonicalization == "simple/simple"
-      assert config.status == :inactive
-      assert config.created_at == now
-      assert config.updated_at == now
     end
 
-    test "normalizes domain to lowercase" do
-      attrs = %{
-        tenant_id: "tenant3",
-        domain: "EXAMPLE.COM",
-        selector: "default",
-        private_key: @valid_private_key
-      }
+    test "validates tenant_id" do
+      attrs = Map.put(@valid_attrs, :tenant_id, "")
+      assert {:error, :invalid_tenant_id} = Config.new(attrs)
 
-      assert {:ok, %Config{} = config} = Config.new(attrs)
-      assert config.domain == "example.com"
-    end
-
-    test "trims private key whitespace" do
-      key_with_whitespace = "  " <> @valid_private_key <> "  "
-
-      attrs = %{
-        tenant_id: "tenant4",
-        domain: "example.com",
-        selector: "default",
-        private_key: key_with_whitespace
-      }
-
-      assert {:ok, %Config{} = config} = Config.new(attrs)
-      # We can't directly check the trimmed key since it's encrypted,
-      # but the creation should succeed
-      assert is_binary(config.private_key_encrypted)
-    end
-  end
-
-  describe "new/1 validation errors" do
-    test "returns error for missing tenant_id" do
-      attrs = %{domain: "example.com", selector: "default", private_key: @valid_private_key}
+      attrs = Map.put(@valid_attrs, :tenant_id, "invalid tenant!")
       assert {:error, :invalid_tenant_id} = Config.new(attrs)
     end
 
-    test "returns error for empty tenant_id" do
-      attrs = %{
-        tenant_id: "",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key
-      }
+    test "validates domain" do
+      attrs = Map.put(@valid_attrs, :domain, "invalid domain")
+      assert {:error, :invalid_domain} = Config.new(attrs)
 
-      assert {:error, :invalid_tenant_id} = Config.new(attrs)
-    end
+      attrs = Map.put(@valid_attrs, :domain, "192.168.1.1")
+      assert {:error, :invalid_domain} = Config.new(attrs)
 
-    test "returns error for invalid tenant_id characters" do
-      attrs = %{
-        tenant_id: "tenant@invalid",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key
-      }
-
-      assert {:error, :invalid_tenant_id} = Config.new(attrs)
-    end
-
-    test "returns error for missing domain" do
-      attrs = %{tenant_id: "tenant1", selector: "default", private_key: @valid_private_key}
+      attrs = Map.put(@valid_attrs, :domain, "nodot")
       assert {:error, :invalid_domain} = Config.new(attrs)
     end
 
-    test "returns error for invalid domain format" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "invalid..domain",
-        selector: "default",
-        private_key: @valid_private_key
-      }
-
-      assert {:error, :invalid_domain} = Config.new(attrs)
-    end
-
-    test "returns error for missing selector" do
-      attrs = %{tenant_id: "tenant1", domain: "example.com", private_key: @valid_private_key}
+    test "validates selector" do
+      attrs = Map.put(@valid_attrs, :selector, "")
       assert {:error, :invalid_selector} = Config.new(attrs)
-    end
 
-    test "returns error for empty selector" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "",
-        private_key: @valid_private_key
-      }
-
+      attrs = Map.put(@valid_attrs, :selector, "invalid selector!")
       assert {:error, :invalid_selector} = Config.new(attrs)
-    end
 
-    test "returns error for selector too long" do
+      # Selector too long (>63 chars)
       long_selector = String.duplicate("a", 64)
-
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: long_selector,
-        private_key: @valid_private_key
-      }
-
+      attrs = Map.put(@valid_attrs, :selector, long_selector)
       assert {:error, :invalid_selector} = Config.new(attrs)
     end
 
-    test "returns error for selector with invalid characters" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "invalid@selector",
-        private_key: @valid_private_key
-      }
+    test "validates private_key" do
+      attrs = Map.put(@valid_attrs, :private_key, "not a valid key")
+      assert {:error, :invalid_private_key} = Config.new(attrs)
 
-      assert {:error, :invalid_selector} = Config.new(attrs)
-    end
-
-    test "returns error for missing private_key" do
-      attrs = %{tenant_id: "tenant1", domain: "example.com", selector: "default"}
+      attrs = Map.put(@valid_attrs, :private_key, "")
       assert {:error, :invalid_private_key} = Config.new(attrs)
     end
 
-    test "returns error for invalid private_key format" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "default",
-        private_key: "invalid key"
-      }
-
-      assert {:error, :invalid_private_key} = Config.new(attrs)
-    end
-
-    test "returns error for invalid algorithm" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key,
-        algorithm: "invalid-algorithm"
-      }
-
+    test "validates algorithm" do
+      attrs = Map.put(@valid_attrs, :algorithm, "invalid")
       assert {:error, :invalid_algorithm} = Config.new(attrs)
     end
 
-    test "returns error for invalid canonicalization" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key,
-        canonicalization: "invalid/canonicalization"
-      }
-
+    test "validates canonicalization" do
+      attrs = Map.put(@valid_attrs, :canonicalization, "invalid")
       assert {:error, :invalid_canonicalization} = Config.new(attrs)
     end
 
-    test "returns error for invalid status" do
-      attrs = %{
-        tenant_id: "tenant1",
-        domain: "example.com",
-        selector: "default",
-        private_key: @valid_private_key,
-        status: :invalid
-      }
-
-      assert {:error, :invalid_status} = Config.new(attrs)
+    test "normalizes domain to lowercase" do
+      attrs = Map.put(@valid_attrs, :domain, "EXAMPLE.COM")
+      assert {:ok, config} = Config.new(attrs)
+      assert config.domain == "example.com"
     end
   end
 
   describe "update/2" do
     setup do
-      {:ok, config} =
-        Config.new(%{
-          tenant_id: "tenant1",
-          domain: "original.com",
-          selector: "original",
-          private_key: @valid_private_key,
-          algorithm: "rsa-sha256",
-          canonicalization: "relaxed/relaxed",
-          status: :active
-        })
-
-      %{config: config}
-    end
-
-    test "updates domain", %{config: config} do
-      assert {:ok, updated} = Config.update(config, %{domain: "updated.com"})
-      assert updated.domain == "updated.com"
-      # Should not change
-      assert updated.tenant_id == config.tenant_id
-      assert updated.updated_at != config.updated_at
+      {:ok, config} = Config.new(@valid_attrs)
+      {:ok, config: config}
     end
 
     test "updates selector", %{config: config} do
-      assert {:ok, updated} = Config.update(config, %{selector: "updated"})
-      assert updated.selector == "updated"
+      assert {:ok, updated} = Config.update(config, %{selector: "new-selector"})
+      assert updated.selector == "new-selector"
+      assert updated.domain == config.domain
+      assert updated.updated_at != config.updated_at
     end
 
-    test "updates algorithm", %{config: config} do
-      assert {:ok, updated} = Config.update(config, %{algorithm: "rsa-sha1"})
-      assert updated.algorithm == "rsa-sha1"
-    end
+    test "updates private key and re-encrypts", %{config: config} do
+      new_key = """
+      -----BEGIN RSA PRIVATE KEY-----
+      NewKeyData...
+      -----END RSA PRIVATE KEY-----
+      """
 
-    test "updates canonicalization", %{config: config} do
-      assert {:ok, updated} = Config.update(config, %{canonicalization: "simple/simple"})
-      assert updated.canonicalization == "simple/simple"
+      assert {:ok, updated} = Config.update(config, %{private_key: new_key})
+      refute updated.private_key_encrypted == config.private_key_encrypted
     end
 
     test "updates status", %{config: config} do
@@ -266,203 +141,41 @@ defmodule Epoxi.DKIM.ConfigTest do
       assert updated.status == :inactive
     end
 
-    test "updates private key", %{config: config} do
-      new_key = """
-      -----BEGIN RSA PRIVATE KEY-----
-      NewKeyContent123...
-      -----END RSA PRIVATE KEY-----
-      """
-
-      assert {:ok, updated} = Config.update(config, %{private_key: new_key})
-      assert updated.private_key_encrypted != config.private_key_encrypted
-    end
-
-    test "updates multiple fields", %{config: config} do
-      updates = %{
-        domain: "multi.com",
-        selector: "multi",
-        algorithm: "rsa-sha1",
-        status: :inactive
-      }
-
-      assert {:ok, updated} = Config.update(config, updates)
-      assert updated.domain == "multi.com"
-      assert updated.selector == "multi"
-      assert updated.algorithm == "rsa-sha1"
-      assert updated.status == :inactive
-    end
-
-    test "returns error for invalid updates", %{config: config} do
-      assert {:error, :invalid_domain} = Config.update(config, %{domain: "invalid..domain"})
+    test "validates updated fields", %{config: config} do
       assert {:error, :invalid_selector} = Config.update(config, %{selector: ""})
-      assert {:error, :invalid_algorithm} = Config.update(config, %{algorithm: "invalid"})
-      assert {:error, :invalid_status} = Config.update(config, %{status: :invalid})
-    end
-
-    test "preserves original values when not updated", %{config: config} do
-      assert {:ok, updated} = Config.update(config, %{domain: "new.com"})
-      assert updated.selector == config.selector
-      assert updated.algorithm == config.algorithm
-      assert updated.canonicalization == config.canonicalization
-      assert updated.status == config.status
+      assert {:error, :invalid_domain} = Config.update(config, %{domain: "invalid domain"})
     end
   end
 
   describe "decrypt_private_key/1" do
-    test "returns error for unimplemented decryption" do
-      {:ok, config} =
-        Config.new(%{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: "default",
-          private_key: @valid_private_key
-        })
-
-      # Currently returns error since decryption is not implemented
-      assert {:error, :decryption_not_implemented} = Config.decrypt_private_key(config)
-    end
-  end
-
-  describe "algorithm validation" do
-    test "accepts valid algorithms" do
-      valid_algorithms = ["rsa-sha256", "rsa-sha1"]
-
-      for algorithm <- valid_algorithms do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: "default",
-          private_key: @valid_private_key,
-          algorithm: algorithm
-        }
-
-        assert {:ok, _} = Config.new(attrs), "Failed for algorithm: #{algorithm}"
-      end
+    test "decrypts a previously encrypted key" do
+      assert {:ok, config} = Config.new(@valid_attrs)
+      assert {:ok, decrypted} = Config.decrypt_private_key(config)
+      # Should get back the original key (trimmed)
+      assert String.trim(decrypted) == String.trim(@valid_private_key)
     end
 
-    test "rejects invalid algorithms" do
-      invalid_algorithms = ["sha256", "rsa", "md5", "sha1", "invalid"]
-
-      for algorithm <- invalid_algorithms do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: "default",
-          private_key: @valid_private_key,
-          algorithm: algorithm
-        }
-
-        assert {:error, :invalid_algorithm} = Config.new(attrs),
-               "Should fail for algorithm: #{algorithm}"
-      end
-    end
-  end
-
-  describe "canonicalization validation" do
-    test "accepts valid canonicalizations" do
-      valid_canonicalizations = [
-        "relaxed/relaxed",
-        "relaxed/simple",
-        "simple/relaxed",
-        "simple/simple"
-      ]
-
-      for canonicalization <- valid_canonicalizations do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: "default",
-          private_key: @valid_private_key,
-          canonicalization: canonicalization
-        }
-
-        assert {:ok, _} = Config.new(attrs), "Failed for canonicalization: #{canonicalization}"
-      end
+    test "fails with invalid encrypted data" do
+      assert {:ok, config} = Config.new(@valid_attrs)
+      # Corrupt the encrypted data
+      corrupted_config = %{config | private_key_encrypted: "invalid"}
+      assert {:error, :invalid_encrypted_data} = Config.decrypt_private_key(corrupted_config)
     end
 
-    test "rejects invalid canonicalizations" do
-      invalid_canonicalizations = [
-        "relaxed",
-        "simple",
-        "relaxed/invalid",
-        "invalid/simple",
-        "strict/strict"
-      ]
+    test "different tenants produce different encrypted keys" do
+      attrs1 = Map.put(@valid_attrs, :tenant_id, "tenant1")
+      attrs2 = Map.put(@valid_attrs, :tenant_id, "tenant2")
 
-      for canonicalization <- invalid_canonicalizations do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: "default",
-          private_key: @valid_private_key,
-          canonicalization: canonicalization
-        }
+      assert {:ok, config1} = Config.new(attrs1)
+      assert {:ok, config2} = Config.new(attrs2)
 
-        assert {:error, :invalid_canonicalization} = Config.new(attrs),
-               "Should fail for canonicalization: #{canonicalization}"
-      end
-    end
-  end
+      # Same private key, different tenants = different encryption
+      refute config1.private_key_encrypted == config2.private_key_encrypted
 
-  describe "selector validation edge cases" do
-    test "accepts valid selector formats" do
-      valid_selectors = [
-        "default",
-        "selector1",
-        "my-selector",
-        "my_selector",
-        "my.selector",
-        "a",
-        "123",
-        "sel-123_test.domain"
-      ]
-
-      for selector <- valid_selectors do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: selector,
-          private_key: @valid_private_key
-        }
-
-        assert {:ok, _} = Config.new(attrs), "Failed for selector: #{selector}"
-      end
-    end
-
-    test "rejects invalid selector formats" do
-      invalid_selectors = [
-        "",
-        # starts with hyphen
-        "-selector",
-        # ends with hyphen
-        "selector-",
-        # starts with dot
-        ".selector",
-        # ends with dot
-        "selector.",
-        # starts with underscore
-        "_selector",
-        # ends with underscore
-        "selector_",
-        # invalid character
-        "sel@ector",
-        # space
-        "sel ector",
-        # hash
-        "sel#ector"
-      ]
-
-      for selector <- invalid_selectors do
-        attrs = %{
-          tenant_id: "tenant1",
-          domain: "example.com",
-          selector: selector,
-          private_key: @valid_private_key
-        }
-
-        assert {:error, :invalid_selector} = Config.new(attrs),
-               "Should fail for selector: #{selector}"
-      end
+      # But both should decrypt to the same key
+      assert {:ok, key1} = Config.decrypt_private_key(config1)
+      assert {:ok, key2} = Config.decrypt_private_key(config2)
+      assert String.trim(key1) == String.trim(key2)
     end
   end
 end

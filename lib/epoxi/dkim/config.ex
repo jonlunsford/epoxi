@@ -243,21 +243,74 @@ defmodule Epoxi.DKIM.Config do
       end)
   end
 
-  # Encryption/Decryption functions (placeholder implementation)
-  # In production, these would use proper encryption with tenant-specific keys
+  # Encryption/Decryption functions using AES-256-GCM
+  # Uses a master key from application config with tenant-specific salt
 
   @spec encrypt_private_key(String.t(), String.t()) :: binary()
   defp encrypt_private_key(private_key, tenant_id) do
-    # Placeholder: In production, use AES-256 with tenant-specific salt
-    # For now, just encode to prevent accidental exposure in logs
-    :crypto.hash(:sha256, tenant_id <> private_key)
-    |> Base.encode64()
+    master_key = get_master_key()
+    key = derive_key(master_key, tenant_id)
+
+    # Generate random IV for GCM
+    iv = :crypto.strong_rand_bytes(16)
+
+    # Encrypt using AES-256-GCM
+    {ciphertext, tag} = :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, private_key, "", true)
+
+    # Combine IV + tag + ciphertext for storage
+    # Format: <<iv::binary-16, tag::binary-16, ciphertext::binary>>
+    iv <> tag <> ciphertext
   end
 
   @spec decrypt_private_key(binary(), String.t()) :: {:ok, String.t()} | {:error, atom()}
-  defp decrypt_private_key(_encrypted_key, _tenant_id) do
-    # Placeholder: In production, decrypt using tenant-specific key
-    # For now, return a mock private key for testing
-    {:error, :decryption_not_implemented}
+  defp decrypt_private_key(encrypted_data, tenant_id) when byte_size(encrypted_data) >= 32 do
+    master_key = get_master_key()
+    key = derive_key(master_key, tenant_id)
+
+    # Extract IV + tag + ciphertext
+    <<iv::binary-16, tag::binary-16, ciphertext::binary>> = encrypted_data
+
+    # Decrypt using AES-256-GCM
+    case :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, ciphertext, "", tag, false) do
+      plaintext when is_binary(plaintext) ->
+        {:ok, plaintext}
+
+      :error ->
+        {:error, :decryption_failed}
+    end
+  rescue
+    _ ->
+      {:error, :decryption_failed}
+  end
+
+  defp decrypt_private_key(_encrypted_data, _tenant_id) do
+    {:error, :invalid_encrypted_data}
+  end
+
+  @spec get_master_key() :: binary()
+  defp get_master_key do
+    # Get master key from config or environment
+    # In production, this should be stored securely (e.g., Vault, AWS KMS)
+    case Application.get_env(:epoxi, :dkim_master_key) do
+      nil ->
+        # Generate a default key for development/testing
+        # IMPORTANT: This should never be used in production
+        :crypto.hash(:sha256, "epoxi-default-master-key-change-in-production")
+
+      key when is_binary(key) ->
+        if byte_size(key) == 32 do
+          key
+        else
+          # Hash the key to get 32 bytes for AES-256
+          :crypto.hash(:sha256, key)
+        end
+    end
+  end
+
+  @spec derive_key(binary(), String.t()) :: binary()
+  defp derive_key(master_key, tenant_id) do
+    # Derive tenant-specific key using HKDF-like approach
+    # This ensures each tenant's keys are encrypted with a unique key
+    :crypto.hash(:sha256, master_key <> tenant_id)
   end
 end

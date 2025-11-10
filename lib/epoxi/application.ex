@@ -8,6 +8,7 @@ defmodule Epoxi.Application do
     children = [
       {Epoxi.Telemetry, []},
       {Registry, keys: :unique, name: Epoxi.Queue.Registry},
+      {Epoxi.DKIM.Registry, []},
       {Epoxi.Queue.PipelineSupervisor, []},
       {Epoxi.NodeRegistry, []},
       {Task, fn -> start_pipelines() end},

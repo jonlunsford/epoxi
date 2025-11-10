@@ -4,6 +4,7 @@ defmodule Epoxi.Render do
   struct and compiling text/html bodies via a composer (EEx for example).
   """
 
+  alias Epoxi.DKIM.{Config, Registry}
   alias Epoxi.Email
   alias Epoxi.Parsing
 
@@ -116,15 +117,48 @@ defmodule Epoxi.Render do
     |> Enum.join(", ")
   end
 
+  @doc """
+  Retrieves DKIM options for an email based on the from domain.
+
+  Looks up DKIM configuration from the registry using the sender's domain.
+  If a config is found and active, returns DKIM signing options.
+  Otherwise returns an empty list (no DKIM signing).
+
+  ## Parameters
+
+    * `email` - The email struct containing the from address
+
+  ## Returns
+
+    * DKIM options keyword list for mimemail encoding
+    * Empty list if no DKIM config found or decryption fails
+  """
+  @spec dkim_for(Email.t()) :: keyword()
   def dkim_for(%Email{from: from}) do
-    # FIXME: Make pkeys configurable per from domain.
-    case File.read(:code.priv_dir(:epoxi) ++ "/private-key.pem") do
-      {:ok, private_key} ->
-        domain = Parsing.get_hostname(from)
+    domain = Parsing.get_hostname(from)
 
-        [s: "dkim1", d: domain, private_key: private_key]
+    case Registry.lookup(domain) do
+      {:ok, config} ->
+        case Config.decrypt_private_key(config) do
+          {:ok, private_key} ->
+            [
+              s: config.selector,
+              d: config.domain,
+              private_key: private_key
+            ]
 
-      {:error, _reason} ->
+          {:error, reason} ->
+            require Logger
+
+            Logger.warning(
+              "Failed to decrypt DKIM private key for domain #{domain}: #{inspect(reason)}"
+            )
+
+            []
+        end
+
+      {:error, :not_found} ->
+        # No DKIM config for this domain - send without DKIM
         []
     end
   end
